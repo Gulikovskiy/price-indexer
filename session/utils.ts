@@ -1,6 +1,5 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { kv } from "@vercel/kv";
 
 type SessionId = string;
 

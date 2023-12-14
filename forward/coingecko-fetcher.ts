@@ -1,4 +1,5 @@
-import "server-only";
+"use server";
+// import "server-only";
 import { PriceRawResponse } from "../pages/api/historical-price";
 import { get } from "../session/session-store";
 export const fetchCoingeckoPrice = async () => {
@@ -18,7 +19,7 @@ export const fetchCoingeckoPrice = async () => {
   // Getting the user's name from the session
   const username = await get("username");
 
-  console.log(username); // Outputs: 'John Doe'
+  console.log("!!!username: ", username); // Outputs: 'John Doe'
   return response;
   //   res.prices.map((el) => ({ timestamp: el[0], price: el[1] }))
 };

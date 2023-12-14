@@ -1,11 +1,8 @@
-import { NextApiRequest } from "next";
-import { PriceRawResponse } from "../pages/api/historical-price";
-
 type StaticOrigin = boolean | string | RegExp | (boolean | string | RegExp)[];
 
 type OriginFn = (
   origin: string | undefined,
-  req: NextApiRequest
+  req: Request
 ) => StaticOrigin | Promise<StaticOrigin>;
 
 interface CorsOptions {
@@ -61,10 +58,10 @@ function getOriginHeaders(reqOrigin: string | undefined, origin: StaticOrigin) {
 // originHeadersFromReq
 
 async function originHeadersFromReq(
-  req: NextApiRequest,
+  req: Request,
   origin: StaticOrigin | OriginFn
 ) {
-  const reqOrigin = req.headers.origin || undefined;
+  const reqOrigin = req.headers.get("Origin") || undefined;
   const value =
     typeof origin === "function" ? await origin(reqOrigin, req) : origin;
 
@@ -72,11 +69,11 @@ async function originHeadersFromReq(
   return getOriginHeaders(reqOrigin, value);
 }
 
-function getAllowedHeaders(req: NextApiRequest, allowed?: string | string[]) {
+function getAllowedHeaders(req: Request, allowed?: string | string[]) {
   const headers = new Headers();
 
   if (!allowed) {
-    allowed = req.headers["access-control-request-headers"];
+    allowed = req.headers.get("Access-Control-Request-Headers")!;
     headers.append("Vary", "Access-Control-Request-Headers");
   } else if (Array.isArray(allowed)) {
     // If the allowed headers is an array, turn it into a string
@@ -89,11 +86,7 @@ function getAllowedHeaders(req: NextApiRequest, allowed?: string | string[]) {
   return headers;
 }
 
-export async function cors(
-  req: NextApiRequest,
-  res: Response,
-  options?: CorsOptions
-) {
+export async function cors(req: Request, res: Response, options?: CorsOptions) {
   const opts = { ...defaultOptions, ...options };
   const { headers } = res;
   const originHeaders = await originHeadersFromReq(req, opts.origin ?? false);
@@ -103,7 +96,6 @@ export async function cors(
   };
 
   // If there's no origin we won't touch the response
-  console.log("! originHeaders", !originHeaders);
   if (!originHeaders) return res;
 
   originHeaders.forEach(mergeHeaders);
@@ -135,7 +127,7 @@ export async function cors(
     if (typeof opts.maxAge === "number") {
       headers.set("Access-Control-Max-Age", String(opts.maxAge));
     }
-    console.log("opts.preflightContinue: ", opts.preflightContinue);
+
     if (opts.preflightContinue) return res;
 
     headers.set("Content-Length", "0");
@@ -143,13 +135,5 @@ export async function cors(
   }
 
   // If we got here, it's a normal request
-  // console.log(
-  //   "res.json().then((el) => el.prices): ",
-  //   res.json().then((el) => el.prices)
-  // );
-
-  // const test = res.json().then((el: PriceRawResponse) => el.prices);
-  // console.log("HERE: ", test);
-  // const test2 = new Response(test)
   return res;
 }

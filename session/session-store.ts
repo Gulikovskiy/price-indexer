@@ -1,3 +1,4 @@
+"use server";
 // import "server-only";
 import { getSessionId, getSessionIdAndCreateIfMissing } from "./utils";
 import { kv } from "@vercel/kv";

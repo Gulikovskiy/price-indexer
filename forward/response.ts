@@ -1,9 +1,8 @@
-// import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { cors } from "./cors";
-import type { NextApiRequest, NextApiResponse } from "next";
 
 export const createErrorResponse = (
-  req: NextApiRequest,
+  req: NextRequest,
   message: string,
   status: number = 500
 ) =>
@@ -18,7 +17,7 @@ export const createErrorResponse = (
   );
 
 export const createJsonResponse = (
-  req: NextApiRequest,
+  req: NextRequest,
   body: any,
   status: number = 200
 ) => {
