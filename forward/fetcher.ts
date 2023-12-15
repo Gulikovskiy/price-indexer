@@ -1,6 +1,3 @@
-import { PriceRawResponse } from "../pages/api/historical-price";
-import { get } from "../session/session-store";
-
 const endpointPrefixes = {
   1: "",
   137: "polygon.",
