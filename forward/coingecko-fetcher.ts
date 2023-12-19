@@ -57,6 +57,8 @@ export const fetchCoingeckoPrices = async (
 
     const storedAssetData = stored ? (stored[symbol] as Price[]) || null : null;
     const isDataInStorage = storedAssetData !== null;
+    const apiKey = process.env.CG_DEMO_API_KEY ?? "";
+
     if (isDataInStorage && Number(totalDays) === storedAssetData.length - 1) {
       const latestTimeStamp =
         storedAssetData[storedAssetData.length - 1].timestamp;
@@ -66,13 +68,8 @@ export const fetchCoingeckoPrices = async (
         currentTimestamp
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
-        console.log("CG url 1: ", url);
-        const res = await fetch(url, {
-          headers: {
-            "x-cg-demo-api-key": process.env.CG_DEMO_API_KEY,
-          },
-        });
-        console.log("res: ", res);
+
+        const res = await fetch(`${url}&x_cg_demo_api_key=${apiKey}`);
 
         if (res.status !== 200) {
           return coingeckoAPIErrorResponse(res);
@@ -91,20 +88,14 @@ export const fetchCoingeckoPrices = async (
       }
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
-      console.log("CG url 2: ", url);
-      const res = await fetch(url, {
-        headers: {
-          "x-cg-demo-api-key": process.env.CG_DEMO_API_KEY,
-        },
-      });
-      console.log("res: ", res);
+
+      const res = await fetch(`${url}&x_cg_demo_api_key=${apiKey}`);
 
       if (res.status !== 200) {
         return coingeckoAPIErrorResponse(res);
       }
 
       const rawResponse = await res.json().then((el: PriceRawResponse) => el);
-      console.log("rawResponse: ", rawResponse);
       const response = parsePriceResponse(rawResponse);
 
       setPriceResponse(response, symbol, fetchResponse);
