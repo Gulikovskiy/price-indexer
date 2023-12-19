@@ -1,157 +1,98 @@
 import "server-only";
-import { PriceRawResponse } from "../pages/api/historical-price";
 import { kv } from "@vercel/kv";
 import moment from "moment";
-
-const millisecondsInDay = 86400000;
-const millisecondsInMinute = 60000;
-const refreshInterval = 5; //minutes
-
-type Price = {
-  timestamp: number;
-  price: number;
-};
-type Response = { [symbol: string]: Price[] | null };
-
-const coinList = {
-  //BLOCKCHAINS & CHAINS & FAMOUS
-  BTC: { id: "bitcoin" },
-  ETH: { id: "ethereum" },
-  BNB: { id: "binancecoin" },
-  SOL: { id: "solana" },
-  ADA: { id: "cardano" },
-  AVAX: { id: "avalanche-2" },
-  MATIC: { id: "matic-network" },
-  DOT: { id: "polkadot" },
-  TRON: { id: "tron" },
-  OP: { id: "optimism" },
-  ATOM: { id: "cosmos" },
-  NEAR: { id: "near" },
-  FTM: { id: "fantom" },
-  GNO: { id: "gnosis" },
-  TON: { id: "the-open-network" },
-  ARB: { id: "arbitrum" },
-  LINK: { id: "chainlink" },
-  LTC: { id: "litecoin" },
-  XLM: { id: "stellar" },
-  TIA: { id: "celestia" },
-  GRT: { id: "the-graph" },
-  ALGO: { id: "algorand" },
-
-  //MEME COINS
-  DOGE: { id: "dogecoin" },
-  SHIB: { id: "shiba-inu" },
-  BONK: { id: "bonk" },
-
-  //STABLES
-  USDC: { id: "usd-coin" },
-  USDT: { id: "tether" },
-  DAI: { id: "dai" },
-  TUSD: { id: "true-usd" },
-  FDUSD: { id: "first-digital-usd" },
-  BUSD: { id: "binance-usd" },
-  USDD: { id: "usdd" },
-
-  //WRAPPED
-  WBTC: { id: "wrapped-bitcoin" },
-  WETH: { id: "weth" },
-  WAVAX: { id: "wrapped-avax" },
-  WMATIC: { id: "wmatic" },
-
-  //PDI(active)
-  LDO: { id: "lido-dao" },
-  UNI: { id: "uniswap" },
-  SNX: { id: "havven" },
-  AAVE: { id: "aave" },
-  MKR: { id: "maker" },
-  FXS: { id: "frax-share" },
-  CRV: { id: "curve-dao-token" },
-  RPL: { id: "rocket-pool" },
-  CVX: { id: "convex-finance" },
-  COMP: { id: "compound-governance-token" },
-  YFI: { id: "yearn-finance" },
-  BAL: { id: "balancer" },
-  //PDI(inactive)
-  "1INCH": { id: "1inch" },
-  RBN: { id: "ribbon-finance" },
-  SUSHI: { id: "sushi" },
-  LQTY: { id: "liquity" },
-  LRC: { id: "loopring" },
-  ALCX: { id: "alchemix" },
-  AMP: { id: "amp-token" },
-
-  //CAI(active)
-  JOE: { id: "joe" },
-  SAVAX: { id: "benqi-liquid-staked-avax" },
-  //CAI(inactive)
-  QI: { id: "benqi" },
-};
+import {
+  ceilN,
+  coingeckoAPIErrorResponse,
+  getCoingeckoURL,
+  invalidSymbolErrorResponse,
+  invalidTimestampErrorResponse,
+  parsePriceResponse,
+  setPriceResponse,
+} from "./utils";
+import {
+  millisecondsInDay,
+  millisecondsInMinute,
+  precision,
+  refreshInterval,
+  userKey,
+} from "./constants";
+import { coinList } from "./supported-coins";
+import {
+  Price,
+  PriceDataResponse,
+  PriceRawResponse,
+  PriceResponse,
+} from "./interfaces";
 
 export const fetchCoingeckoPrices = async (
   assets: string[],
   timestamp: number
-) => {
-  const fetchResponse: Response = {};
-  const currentTimestamp = moment().unix() * 1000;
+): Promise<PriceResponse> => {
+  const currentTimestamp = BigInt(moment().unix() * 1000);
+  const isValidDate =
+    moment(timestamp).isValid() ||
+    (Number.isInteger(timestamp) && currentTimestamp >= BigInt(timestamp));
 
-  const totalDays = Math.ceil(
-    (currentTimestamp - timestamp) / millisecondsInDay
+  if (!isValidDate) invalidTimestampErrorResponse(timestamp);
+
+  const fetchResponse: PriceDataResponse = {};
+  const totalDays = ceilN(
+    currentTimestamp - BigInt(timestamp),
+    BigInt(millisecondsInDay)
   );
 
   for (let i = 0; i < assets.length; i++) {
     const symbol = assets[i];
-    const { id } = coinList[symbol];
-    const currentKey = `test-${symbol}`;
-    const stored = await kv.hgetall("test1");
+    const symbolId = coinList[symbol];
 
-    const selectedAssetData = stored ? (stored[currentKey] as Price[]) : null;
-    const isDataInStorage = selectedAssetData !== undefined;
-    if (isDataInStorage && totalDays === selectedAssetData.length - 1) {
+    if (symbolId === undefined) invalidSymbolErrorResponse(symbol);
+
+    const { id } = symbolId;
+    const stored = await kv.hgetall(userKey);
+
+    const storedAssetData = stored ? (stored[symbol] as Price[]) || null : null;
+    const isDataInStorage = storedAssetData !== null;
+    if (isDataInStorage && Number(totalDays) === storedAssetData.length - 1) {
       const latestTimeStamp =
-        selectedAssetData[selectedAssetData.length - 1].timestamp;
+        storedAssetData[storedAssetData.length - 1].timestamp;
 
       if (
         latestTimeStamp + refreshInterval * millisecondsInMinute <=
         currentTimestamp
       ) {
-        const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=1&interval=daily&precision=3`;
+        const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
         const res = await fetch(url);
-        if (res.status !== 200) {
-          console.error("Coingecko API failed with code %s", res.status);
-          return null;
-        }
-        const latestPrice = await res
-          .json()
-          .then((el: PriceRawResponse) =>
-            el.prices.map((el) => ({ timestamp: el[0], price: el[1] } as Price))
-          );
+
+        if (res.status !== 200) coingeckoAPIErrorResponse(res);
+
+        const rawResponse: PriceRawResponse = await res.json().then((el) => el);
+        const latestPrice = parsePriceResponse(rawResponse);
         const updatedArray = [
-          ...selectedAssetData.slice(0, selectedAssetData.length - 1),
+          ...storedAssetData.slice(0, storedAssetData.length - 1),
           latestPrice[latestPrice.length - 1],
         ];
-        kv.hset("test1", { [currentKey]: updatedArray });
-        fetchResponse[symbol] = updatedArray;
+
+        setPriceResponse(updatedArray, symbol, fetchResponse);
       } else {
-        fetchResponse[symbol] = selectedAssetData;
+        fetchResponse[symbol] = storedAssetData;
       }
     } else {
-      const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${totalDays}&interval=daily&precision=3`;
-
+      const url = getCoingeckoURL(id, totalDays, precision);
       const res = await fetch(url);
-      if (res.status !== 200) {
-        console.error("Coingecko API failed with code %s", res.status);
-        return null;
-      }
-      const response = await res
-        .json()
-        .then((el: PriceRawResponse) =>
-          el.prices.map((el) => ({ timestamp: el[0], price: el[1] } as Price))
-        );
 
-      kv.hset("test1", { [currentKey]: response });
-      await (fetchResponse[symbol] = response);
+      if (res.status !== 200) coingeckoAPIErrorResponse(res);
+
+      const rawResponse: PriceRawResponse = await res.json().then((el) => el);
+      const response = parsePriceResponse(rawResponse);
+
+      setPriceResponse(response, symbol, fetchResponse);
     }
   }
 
-  return fetchResponse;
+  return {
+    data: fetchResponse,
+    code: 200,
+    message: "OK",
+  };
 };
