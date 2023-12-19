@@ -83,7 +83,8 @@ export const fetchCoingeckoPrices = async (
 
       if (res.status !== 200) coingeckoAPIErrorResponse(res);
 
-      const rawResponse: PriceRawResponse = await res.json().then((el) => el);
+      const rawResponse = await res.json().then((el: PriceRawResponse) => el);
+      console.log("rawResponse: ", rawResponse);
       const response = parsePriceResponse(rawResponse);
 
       setPriceResponse(response, symbol, fetchResponse);
