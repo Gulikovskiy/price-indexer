@@ -1,8 +1,8 @@
 import "server-only";
 import { NextRequest } from "next/server";
-import { fetchCoingeckoPrices } from "../../../../forward/coingecko-fetcher";
-import { invalidSearchParamsError } from "../../../../forward/utils";
-import { millisecondsInYear } from "../../../../forward/constants";
+import { fetchCoingeckoPrices } from "../../../forward/coingecko-fetcher";
+import { invalidSearchParamsError } from "../../../forward/utils";
+import { millisecondsInYear } from "../../../forward/constants";
 
 export const config = {
   runtime: "edge",
