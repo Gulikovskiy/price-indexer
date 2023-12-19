@@ -65,7 +65,6 @@ export const fetchCoingeckoPrices = async (
         console.log("CG url 1: ", url);
         const res = await fetch(url);
         console.log("res: ", res);
-        console.log("res.json(): ", res.json());
 
         if (res.status !== 200) coingeckoAPIErrorResponse(res);
 
@@ -85,7 +84,6 @@ export const fetchCoingeckoPrices = async (
       console.log("CG url 2: ", url);
       const res = await fetch(url);
       console.log("res: ", res);
-      console.log("res.json(): ", res.json());
 
       if (res.status !== 200) coingeckoAPIErrorResponse(res);
 
