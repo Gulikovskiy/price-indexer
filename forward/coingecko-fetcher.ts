@@ -79,7 +79,9 @@ export const fetchCoingeckoPrices = async (
       }
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
+      console.log("CG url: ", url);
       const res = await fetch(url);
+      console.log("res: ", res);
 
       if (res.status !== 200) coingeckoAPIErrorResponse(res);
 
