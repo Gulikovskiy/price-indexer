@@ -62,7 +62,10 @@ export const fetchCoingeckoPrices = async (
         currentTimestamp
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
+        console.log("CG url 1: ", url);
         const res = await fetch(url);
+        console.log("res: ", res);
+        console.log("res.json(): ", res.json());
 
         if (res.status !== 200) coingeckoAPIErrorResponse(res);
 
@@ -79,9 +82,10 @@ export const fetchCoingeckoPrices = async (
       }
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
-      console.log("CG url: ", url);
+      console.log("CG url 2: ", url);
       const res = await fetch(url);
       console.log("res: ", res);
+      console.log("res.json(): ", res.json());
 
       if (res.status !== 200) coingeckoAPIErrorResponse(res);
 
