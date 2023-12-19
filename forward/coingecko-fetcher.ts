@@ -34,7 +34,9 @@ export const fetchCoingeckoPrices = async (
     moment(timestamp).isValid() ||
     (Number.isInteger(timestamp) && currentTimestamp >= BigInt(timestamp));
 
-  if (!isValidDate) invalidTimestampErrorResponse(timestamp);
+  if (!isValidDate) {
+    return invalidTimestampErrorResponse(timestamp);
+  }
 
   const fetchResponse: PriceDataResponse = {};
   const totalDays = ceilN(
@@ -65,7 +67,11 @@ export const fetchCoingeckoPrices = async (
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
         console.log("CG url 1: ", url);
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          headers: {
+            "x-cg-demo-api-key": process.env.CG_DEMO_API_KEY,
+          },
+        });
         console.log("res: ", res);
 
         if (res.status !== 200) {
@@ -86,7 +92,11 @@ export const fetchCoingeckoPrices = async (
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
       console.log("CG url 2: ", url);
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: {
+          "x-cg-demo-api-key": process.env.CG_DEMO_API_KEY,
+        },
+      });
       console.log("res: ", res);
 
       if (res.status !== 200) {
