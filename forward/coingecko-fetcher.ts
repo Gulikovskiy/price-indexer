@@ -46,7 +46,9 @@ export const fetchCoingeckoPrices = async (
     const symbol = assets[i];
     const symbolId = coinList[symbol];
 
-    if (symbolId === undefined) invalidSymbolErrorResponse(symbol);
+    if (symbolId === undefined) {
+      return invalidSymbolErrorResponse(symbol);
+    }
 
     const { id } = symbolId;
     const stored = await kv.hgetall(userKey);
@@ -66,7 +68,9 @@ export const fetchCoingeckoPrices = async (
         const res = await fetch(url);
         console.log("res: ", res);
 
-        if (res.status !== 200) coingeckoAPIErrorResponse(res);
+        if (res.status !== 200) {
+          return coingeckoAPIErrorResponse(res);
+        }
 
         const rawResponse: PriceRawResponse = await res.json().then((el) => el);
         const latestPrice = parsePriceResponse(rawResponse);
@@ -85,7 +89,9 @@ export const fetchCoingeckoPrices = async (
       const res = await fetch(url);
       console.log("res: ", res);
 
-      if (res.status !== 200) coingeckoAPIErrorResponse(res);
+      if (res.status !== 200) {
+        return coingeckoAPIErrorResponse(res);
+      }
 
       const rawResponse = await res.json().then((el: PriceRawResponse) => el);
       console.log("rawResponse: ", rawResponse);
