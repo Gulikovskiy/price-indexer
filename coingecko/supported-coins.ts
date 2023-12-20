@@ -1,4 +1,8 @@
 export const coinList: { [symbol: string]: string } = {
+  //PRODUCTS
+  CAI: "colony-avalanche-index",
+  PDI: "phuture-defi-index",
+
   //BLOCKCHAINS & CHAINS & FAMOUS
   BTC: "bitcoin",
   ETH: "ethereum",
