@@ -68,10 +68,11 @@ export const fetchCoingeckoPrices = async (
         currentTimestamp
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
+        const newURL = `${url}&x_cg_demo_api_key=${apiKey}`;
 
-        const res = await fetch(`${url}&x_cg_demo_api_key=${apiKey}`, {
-          headers: { "user-agent": "C" },
-        });
+        const res = await fetch(
+          `https://api.scraperapi.com/?api_key=f49e3a8bbe63e8611c37ea490e73534a&url=${newURL}`
+        );
 
         if (res.status !== 200) {
           return coingeckoAPIErrorResponse(res);
@@ -90,10 +91,11 @@ export const fetchCoingeckoPrices = async (
       }
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
+      const newURL = `${url}&x_cg_demo_api_key=${apiKey}`;
 
-      const res = await fetch(`${url}&x_cg_demo_api_key=${apiKey}`, {
-        headers: { "user-agent": "C" },
-      });
+      const res = await fetch(
+        `https://api.scraperapi.com/?api_key=f49e3a8bbe63e8611c37ea490e73534a&url=${newURL}`
+      );
 
       if (res.status !== 200) {
         return coingeckoAPIErrorResponse(res);
