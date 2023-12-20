@@ -13,16 +13,18 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     Array.isArray(rawTimestamp) ? rawTimestamp[0] : rawTimestamp
   );
   const coins = Array.isArray(rawCoins) ? rawCoins[0] : rawCoins;
+
+  const properParams = !Number.isNaN(timestamp) && timestamp > 0 && coins;
+  if (!properParams) {
+    return res.status(400).json(invalidSearchParamsError);
+  }
+
   const timestampInMilliseconds =
     BigInt(timestamp) > BigInt(millisecondsInYear)
       ? timestamp
       : timestamp * 1000;
 
-  const properParams = timestampInMilliseconds > 0 && coins;
-  if (!properParams) {
-    return res.status(400).json(invalidSearchParamsError);
-  }
-  const coinList = coins.split(" ");
+  const coinList = Array.from(new Set(coins.split(" ")));
 
   if (!isValidDate(timestampInMilliseconds)) {
     return res.status(400).json(invalidTimestampErrorResponse(timestamp));

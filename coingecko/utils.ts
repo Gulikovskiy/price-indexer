@@ -1,3 +1,4 @@
+import { precision } from "./constants";
 import { Price, PriceRawResponse, ValidDate } from "./interfaces";
 import moment from "moment";
 
@@ -12,17 +13,11 @@ export function isValidDate(date: number): date is ValidDate {
   );
 }
 
-export const getCoingeckoURL = (
-  id: string,
-  days: bigint | number,
-  precision: number
-) => {
-  return `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${Number(
-    days
-  )}&interval=daily&precision=${precision}`;
-};
+export const getCoingeckoURL = (id: string, from: number, to: number) =>
+  `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}`;
 
 export const parsePriceResponse = (res: PriceRawResponse) => {
+  //TODO add class-transform / validation
   return res.prices.map(
     (el) => ({ timestamp: el[0], price: el[1].toString() } as Price)
   );
