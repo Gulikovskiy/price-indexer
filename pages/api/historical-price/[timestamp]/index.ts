@@ -23,12 +23,15 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       : timestamp * 1000;
   console.log("rawCoins: ", rawCoins);
   const properParams = timestampInMilliseconds > 0 && coins;
-  if (properParams) {
-    const coinList = coins.split(" ");
-    console.log("coinList: ", coinList);
-    const resp = await fetchCoingeckoPrices(coinList, timestampInMilliseconds);
-    res.status(200).json(resp);
+  if (!properParams) {
+    return res.status(400).json(invalidSearchParamsError);
   }
-  return res.status(400).json(invalidSearchParamsError);
+  const coinList = coins.split(" ");
+  console.log("coinList: ", coinList);
+  const resp = await fetchCoingeckoPrices(coinList, timestampInMilliseconds);
+  if (resp.code !== 200) {
+    return res.status(resp.code).json(resp.message);
+  }
+  return res.status(resp.code).json(resp.data);
 };
 export default handler;
