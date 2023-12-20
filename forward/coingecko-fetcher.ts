@@ -68,6 +68,7 @@ export const fetchCoingeckoPrices = async (
         currentTimestamp
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
+        console.info(apiKey);
 
         const res = await fetch(`${url}&x_cg_demo_api_key=${apiKey}`);
 
@@ -88,6 +89,7 @@ export const fetchCoingeckoPrices = async (
       }
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
+      console.info(apiKey);
 
       const res = await fetch(`${url}&x_cg_demo_api_key=${apiKey}`);
 
