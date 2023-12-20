@@ -1,13 +1,11 @@
-// import "server-only";
-import { NextRequest } from "next/server";
-import { fetchCoingeckoPrices } from "../../../../forward/coingecko-fetcher";
-import { invalidSearchParamsError } from "../../../../forward/utils";
-import { millisecondsInYear } from "../../../../forward/constants";
+import { fetchCoingeckoPrices } from "../../../../coingecko/coingecko-fetcher";
+import {
+  invalidSearchParamsError,
+  invalidTimestampErrorResponse,
+  isValidDate,
+} from "../../../../coingecko/utils";
+import { millisecondsInYear } from "../../../../coingecko/constants";
 import { NextApiRequest, NextApiResponse } from "next/types";
-
-// export const config = {
-//   runtime: "edge",
-// };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { coins: rawCoins, timestamp: rawTimestamp } = req.query;
@@ -15,23 +13,26 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     Array.isArray(rawTimestamp) ? rawTimestamp[0] : rawTimestamp
   );
   const coins = Array.isArray(rawCoins) ? rawCoins[0] : rawCoins;
-  console.log("rawTimestamp:  ", rawTimestamp);
-  console.log("timestamp:  ", timestamp);
   const timestampInMilliseconds =
     BigInt(timestamp) > BigInt(millisecondsInYear)
       ? timestamp
       : timestamp * 1000;
-  console.log("rawCoins: ", rawCoins);
+
   const properParams = timestampInMilliseconds > 0 && coins;
   if (!properParams) {
     return res.status(400).json(invalidSearchParamsError);
   }
   const coinList = coins.split(" ");
-  console.log("coinList: ", coinList);
-  const resp = await fetchCoingeckoPrices(coinList, timestampInMilliseconds);
-  if (resp.code !== 200) {
-    return res.status(resp.code).json(resp.message);
+
+  if (!isValidDate(timestampInMilliseconds)) {
+    return res.status(400).json(invalidTimestampErrorResponse(timestamp));
   }
-  return res.status(resp.code).json(resp.data);
+  try {
+    const resp = await fetchCoingeckoPrices(coinList, timestampInMilliseconds);
+
+    return res.status(200).json(resp);
+  } catch (error) {
+    return res.status(error.code).json(error.message);
+  }
 };
 export default handler;

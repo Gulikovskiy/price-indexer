@@ -1,7 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@types/node': ^18.15.11
+  '@types/node': ^18.19.3
   '@types/react': 18.0.33
   '@vercel/kv': ^1.0.1
   eslint: 8.37.0
