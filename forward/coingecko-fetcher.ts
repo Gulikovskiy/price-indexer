@@ -69,10 +69,9 @@ export const fetchCoingeckoPrices = async (
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
         const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
-        console.log("newURL: ", newURL);
 
         const res = await fetch(
-          `https://api.scraperapi.com/?api_key=f49e3a8bbe63e8611c37ea490e73534a&url=${newURL}`
+          `https://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&url=${newURL}`
         );
 
         if (res.status !== 200) {
@@ -93,10 +92,9 @@ export const fetchCoingeckoPrices = async (
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
       const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
-      console.log("newURL: ", newURL);
 
       const res = await fetch(
-        `https://api.scraperapi.com/?api_key=f49e3a8bbe63e8611c37ea490e73534a&url=${newURL}`
+        `https://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&url=${newURL}`
       );
 
       if (res.status !== 200) {
