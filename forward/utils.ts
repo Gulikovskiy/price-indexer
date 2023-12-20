@@ -15,6 +15,8 @@ export const getCoingeckoURL = (
   )}&interval=daily&precision=${precision}`;
 };
 
+// https%3A%2F%2Fapi.coingecko.com%2Fapi%2Fv3%2Fcoins%2Fbitcoin%2Fmarket_chart%3Fvs_currency%3Dusd%26days%3D1%26in%5B%E2%80%A6%5Dly%26precision%3D8%26x_cg_demo_api_key%3DCG-XBpSvURzDDvsHe2uShigeLwY
+
 export const parsePriceResponse = (res: PriceRawResponse) => {
   return res.prices.map(
     (el) => ({ timestamp: el[0], price: el[1].toString() } as Price)

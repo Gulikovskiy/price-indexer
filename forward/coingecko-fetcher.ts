@@ -1,4 +1,4 @@
-import "server-only";
+// import "server-only";
 import { kv } from "@vercel/kv";
 import moment from "moment";
 import {
@@ -68,7 +68,8 @@ export const fetchCoingeckoPrices = async (
         currentTimestamp
       ) {
         const url = getCoingeckoURL(id, 1, precision); //get only last 24h entity
-        const newURL = `${url}&x_cg_demo_api_key=${apiKey}`;
+        const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
+        console.log("newURL: ", newURL);
 
         const res = await fetch(
           `https://api.scraperapi.com/?api_key=f49e3a8bbe63e8611c37ea490e73534a&url=${newURL}`
@@ -91,7 +92,8 @@ export const fetchCoingeckoPrices = async (
       }
     } else {
       const url = getCoingeckoURL(id, totalDays, precision);
-      const newURL = `${url}&x_cg_demo_api_key=${apiKey}`;
+      const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
+      console.log("newURL: ", newURL);
 
       const res = await fetch(
         `https://api.scraperapi.com/?api_key=f49e3a8bbe63e8611c37ea490e73534a&url=${newURL}`
