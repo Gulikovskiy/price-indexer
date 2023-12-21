@@ -25,21 +25,39 @@ import {
 
 export const fetchCoingeckoPrices = async (
   assets: string[],
-  timestamp: ValidDate
+  timestamp: ValidDate,
+  days: number
 ): Promise<PriceDataResponse> => {
   const currentTimestamp = moment().unix();
+  const startTimestamp = moment(timestamp * 1000)
+    .utc()
+    .startOf("day")
+    .unix();
+
+  const finishTimestamp = moment(startTimestamp * 1000)
+    .add(days, "days")
+    .unix();
 
   const data: PriceDataResponse = {};
+  console.log(
+    "set timestamp",
+    startTimestamp,
+    "finishTimestamp: ",
+    finishTimestamp
+  );
   // const totalDays = ceilN(
   //   currentTimestamp - BigInt(timestamp),
   //   BigInt(millisecondsInDay)
   // );
-  const testTimestamp = timestamp;
+
   //TODO: floor day timestamp
   const apiKey = process.env.CG_DEMO_API_KEY ?? "";
 
-  const fetchData = async (id: string, start: number, finish: number) => {
+  const fetchData = async (symbol: string, start: number, finish: number) => {
+    console.log("FETCH: ", "start: ", start, "finish: ", finish);
+    const id = coinList[symbol];
     const url = getCoingeckoURL(id, start, finish);
+    console.log("URL: ", url);
     const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
     const res = await fetch(
       `https://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&url=${newURL}`
@@ -48,8 +66,11 @@ export const fetchCoingeckoPrices = async (
       throw coingeckoAPIErrorResponse(res);
     }
     const rawResponse = (await res.json()) as PriceRawResponse;
-    return parsePriceResponse(rawResponse);
+    // console.log(";rawResponse: ", rawResponse);
+    return parsePriceResponse(symbol, rawResponse);
   };
+
+  // productStartInMilliseconds
 
   const stored = await kv.hgetall(userKey);
 
@@ -86,7 +107,18 @@ export const fetchCoingeckoPrices = async (
           data[symbol] = storedAssetData;
         }
       } else {
-        const response = await fetchData(id, testTimestamp, currentTimestamp);
+        console.log("HERE");
+        //   "testTimestamp: ",
+        //   testTimestamp,
+        //   "currentTimestamp: ",
+        //   currentTimestamp
+        // );
+        const response = await fetchData(
+          symbol,
+          startTimestamp,
+          finishTimestamp
+        );
+        console.log("response: ", response);
 
         kv.hset(userKey, { [symbol]: response });
         data[symbol] = response;

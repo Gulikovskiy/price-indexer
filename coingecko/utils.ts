@@ -1,4 +1,10 @@
-import { precision } from "./constants";
+import { kv } from "@vercel/kv";
+import {
+  millisecondsInDay,
+  precision,
+  productStartInMilliseconds,
+  userKey,
+} from "./constants";
 import { Price, PriceRawResponse, ValidDate } from "./interfaces";
 import moment from "moment";
 
@@ -16,11 +22,22 @@ export function isValidDate(date: number): date is ValidDate {
 export const getCoingeckoURL = (id: string, from: number, to: number) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}`;
 
-export const parsePriceResponse = (res: PriceRawResponse) => {
+export const parsePriceResponse = (symbol: string, res: PriceRawResponse) => {
   //TODO add class-transform / validation
-  return res.prices.map(
-    (el) => ({ timestamp: el[0], price: el[1].toString() } as Price)
-  );
+  const arr: Price[] = [];
+  // kv.hset(userKey, { [symbol]: response });
+
+  res.prices.map((el) => {
+    const id = (el[0] - productStartInMilliseconds) / millisecondsInDay;
+    // console.log("dayId: ", {
+    //   [dayId]: { timestamp: el[0], price: el[1].toString() },
+    // });
+    // return { [dayId]: { timestamp: el[0], price: el[1].toString() } as Price };
+    arr.push({ id, timestamp: el[0], price: el[1].toString() } as Price);
+    // return { timestamp: el[0], price: el[1].toString() } as Price;
+  });
+  return arr;
+  // console.log("struct: ", struct);
 };
 
 //ERRORS
