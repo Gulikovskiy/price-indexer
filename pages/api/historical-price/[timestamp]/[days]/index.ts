@@ -4,24 +4,16 @@ import {
   invalidTimestampErrorResponse,
   isValidDate,
 } from "../../../../../coingecko/utils";
-// import { millisecondsInYear } from "../../../../../coingecko/constants";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { coins: rawCoins, timestamp: rawTimestamp, days: rawDays } = req.query;
-  console.log(
-    "rawCoins: ",
-    rawCoins,
-    "rawTimestamp: ",
-    rawTimestamp,
-    "rawDays: ",
-    rawDays
-  );
+
   const timestamp = Number(
     Array.isArray(rawTimestamp) ? rawTimestamp[0] : rawTimestamp
   );
   const days = Number(Array.isArray(rawDays) ? rawDays[0] : rawDays);
-  console.log("days: ", days);
+
   const coins = Array.isArray(rawCoins) ? rawCoins[0] : rawCoins;
 
   const properParams =

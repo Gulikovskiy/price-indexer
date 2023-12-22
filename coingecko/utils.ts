@@ -1,9 +1,7 @@
-import { kv } from "@vercel/kv";
 import {
   millisecondsInDay,
   precision,
   productStartInMilliseconds,
-  userKey,
 } from "./constants";
 import { Price, PriceRawResponse, ValidDate } from "./interfaces";
 import moment from "moment";
@@ -25,19 +23,22 @@ export const getCoingeckoURL = (id: string, from: number, to: number) =>
 export const parsePriceResponse = (symbol: string, res: PriceRawResponse) => {
   //TODO add class-transform / validation
   const arr: Price[] = [];
-  // kv.hset(userKey, { [symbol]: response });
 
   res.prices.map((el) => {
-    const id = (el[0] - productStartInMilliseconds) / millisecondsInDay;
-    // console.log("dayId: ", {
-    //   [dayId]: { timestamp: el[0], price: el[1].toString() },
-    // });
-    // return { [dayId]: { timestamp: el[0], price: el[1].toString() } as Price };
-    arr.push({ id, timestamp: el[0], price: el[1].toString() } as Price);
-    // return { timestamp: el[0], price: el[1].toString() } as Price;
+    const timestamp = el[0];
+    const startOfTheDay = moment(timestamp).utc().startOf("day").unix() * 1000;
+
+    const id = (startOfTheDay - productStartInMilliseconds) / millisecondsInDay;
+
+    const isArrayFilledWithCurrentId = arr.some((el) => el.id === id);
+    if (arr.length === 0 || !isArrayFilledWithCurrentId)
+      arr.push({
+        id,
+        timestamp: startOfTheDay,
+        price: el[1].toString(),
+      } as Price);
   });
   return arr;
-  // console.log("struct: ", struct);
 };
 
 //ERRORS

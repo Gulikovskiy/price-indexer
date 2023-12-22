@@ -12,6 +12,7 @@ import {
   millisecondsInDay,
   millisecondsInMinute,
   precision,
+  productStartInMilliseconds,
   refreshInterval,
   userKey,
 } from "./constants";
@@ -39,16 +40,6 @@ export const fetchCoingeckoPrices = async (
     .unix();
 
   const data: PriceDataResponse = {};
-  console.log(
-    "set timestamp",
-    startTimestamp,
-    "finishTimestamp: ",
-    finishTimestamp
-  );
-  // const totalDays = ceilN(
-  //   currentTimestamp - BigInt(timestamp),
-  //   BigInt(millisecondsInDay)
-  // );
 
   //TODO: floor day timestamp
   const apiKey = process.env.CG_DEMO_API_KEY ?? "";
@@ -66,11 +57,8 @@ export const fetchCoingeckoPrices = async (
       throw coingeckoAPIErrorResponse(res);
     }
     const rawResponse = (await res.json()) as PriceRawResponse;
-    // console.log(";rawResponse: ", rawResponse);
     return parsePriceResponse(symbol, rawResponse);
   };
-
-  // productStartInMilliseconds
 
   const stored = await kv.hgetall(userKey);
 
@@ -85,34 +73,32 @@ export const fetchCoingeckoPrices = async (
         ? (stored[symbol] as Price[]) || null
         : null;
       const isDataInStorage = storedAssetData !== null;
-      const isOneDayData = false;
-      // isDataInStorage && Number(totalDays) === storedAssetData.length - 1;
-      //TODO: fix
 
-      if (isOneDayData) {
+      if (isDataInStorage) {
         const latestTimeStamp =
           storedAssetData[storedAssetData.length - 1].timestamp;
-        if (
-          latestTimeStamp + refreshInterval * millisecondsInMinute <=
-          currentTimestamp
-        ) {
-          // const latestPrice = await fetchData(id, 1);
-          // const updatedArray = [
-          //   ...storedAssetData.slice(0, storedAssetData.length - 1),
-          //   latestPrice[latestPrice.length - 1],
-          // ];
-          // kv.hset(userKey, { [symbol]: updatedArray });
-          // data[symbol] = updatedArray;
-        } else {
-          data[symbol] = storedAssetData;
-        }
+
+        // const dayStartId =
+        //   (startTimestamp * 1000 - productStartInMilliseconds) /
+        //   millisecondsInDay;
+
+        const lastStoredTimestamp =
+          storedAssetData[storedAssetData.length - 1].timestamp;
+
+        const newLatestPrices = await fetchData(
+          symbol,
+          moment(lastStoredTimestamp).unix(),
+          finishTimestamp
+        );
+
+        const updatedArray = [
+          ...storedAssetData.slice(0, storedAssetData.length - 1),
+          ...newLatestPrices,
+        ];
+
+        kv.hset(userKey, { [symbol]: updatedArray });
+        data[symbol] = updatedArray;
       } else {
-        console.log("HERE");
-        //   "testTimestamp: ",
-        //   testTimestamp,
-        //   "currentTimestamp: ",
-        //   currentTimestamp
-        // );
         const response = await fetchData(
           symbol,
           startTimestamp,
