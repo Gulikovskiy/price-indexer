@@ -1,3 +1,4 @@
+import { NextApiRequest, NextApiResponse } from "next/types";
 import { fetchCoingeckoPrices } from "../../../../../coingecko/coingecko-fetcher";
 import { productStartInSeconds } from "../../../../../coingecko/constants";
 import {
@@ -5,7 +6,6 @@ import {
   invalidTimestampErrorResponse,
   isValidDate,
 } from "../../../../../coingecko/utils";
-import { NextApiRequest, NextApiResponse } from "next/types";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { coins: rawCoins, timestamp: rawTimestamp, days: rawDays } = req.query;
@@ -27,14 +27,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(400).json(invalidSearchParamsError);
   }
 
-  const timestampInSeconds =
-    timestamp < productStartInSeconds ? productStartInSeconds : timestamp;
+  if (!isValidDate(timestamp)) {
+    return res.status(400).json(invalidTimestampErrorResponse(timestamp));
+  }
+
+  const timestampInSeconds = Math.max(timestamp, productStartInSeconds);
 
   const coinList = Array.from(new Set(coins.split(" ")));
 
-  if (!isValidDate(timestampInSeconds)) {
-    return res.status(400).json(invalidTimestampErrorResponse(timestamp));
-  }
   try {
     const resp = await fetchCoingeckoPrices(coinList, timestampInSeconds, days);
 

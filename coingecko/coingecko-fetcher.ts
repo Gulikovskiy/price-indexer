@@ -2,31 +2,22 @@
 import { kv } from "@vercel/kv";
 import moment from "moment";
 import {
-  ceilN,
+  millisecondsInDay,
+  productStartInMilliseconds,
+  userKey,
+} from "./constants";
+import { Price, PriceDataResponse, PriceRawResponse } from "./interfaces";
+import { coinList } from "./supported-coins";
+import {
   coingeckoAPIErrorResponse,
   getCoingeckoURL,
   invalidSymbolErrorResponse,
   parsePriceResponse,
 } from "./utils";
-import {
-  millisecondsInDay,
-  millisecondsInMinute,
-  precision,
-  productStartInMilliseconds,
-  refreshInterval,
-  userKey,
-} from "./constants";
-import { coinList } from "./supported-coins";
-import {
-  Price,
-  PriceDataResponse,
-  PriceRawResponse,
-  ValidDate,
-} from "./interfaces";
 
 export const fetchCoingeckoPrices = async (
   assets: string[],
-  timestamp: ValidDate,
+  timestamp: number,
   days: number
 ): Promise<PriceDataResponse> => {
   const currentTimestamp = moment().unix();
