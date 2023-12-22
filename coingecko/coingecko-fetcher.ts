@@ -78,33 +78,40 @@ export const fetchCoingeckoPrices = async (
         const latestTimeStamp =
           storedAssetData[storedAssetData.length - 1].timestamp;
 
-        // const dayStartId =
-        //   (startTimestamp * 1000 - productStartInMilliseconds) /
-        //   millisecondsInDay;
+        const dayStartId =
+          (startTimestamp * 1000 - productStartInMilliseconds) /
+          millisecondsInDay;
+
+        const dayFinishId =
+          (finishTimestamp * 1000 - productStartInMilliseconds) /
+          millisecondsInDay;
 
         const lastStoredTimestamp =
           storedAssetData[storedAssetData.length - 1].timestamp;
 
-        const newLatestPrices = await fetchData(
-          symbol,
-          moment(lastStoredTimestamp).unix(),
-          finishTimestamp
-        );
+        if (lastStoredTimestamp < finishTimestamp * 1000) {
+          const newLatestPrices = await fetchData(
+            symbol,
+            moment(lastStoredTimestamp).unix(),
+            finishTimestamp
+          );
 
-        const updatedArray = [
-          ...storedAssetData.slice(0, storedAssetData.length - 1),
-          ...newLatestPrices,
-        ];
+          const wholeUpdatedArray = [
+            ...storedAssetData.slice(0, storedAssetData.length - 1),
+            ...newLatestPrices,
+          ];
 
-        kv.hset(userKey, { [symbol]: updatedArray });
-        data[symbol] = updatedArray;
+          kv.hset(userKey, { [symbol]: wholeUpdatedArray });
+          data[symbol] = wholeUpdatedArray.slice(dayStartId, dayFinishId);
+        } else {
+          data[symbol] = storedAssetData.slice(dayStartId, dayFinishId);
+        }
       } else {
         const response = await fetchData(
           symbol,
           startTimestamp,
           finishTimestamp
         );
-        console.log("response: ", response);
 
         kv.hset(userKey, { [symbol]: response });
         data[symbol] = response;

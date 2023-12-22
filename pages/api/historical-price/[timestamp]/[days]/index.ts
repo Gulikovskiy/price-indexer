@@ -1,4 +1,5 @@
 import { fetchCoingeckoPrices } from "../../../../../coingecko/coingecko-fetcher";
+import { productStartInSeconds } from "../../../../../coingecko/constants";
 import {
   invalidSearchParamsError,
   invalidTimestampErrorResponse,
@@ -26,7 +27,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(400).json(invalidSearchParamsError);
   }
 
-  const timestampInSeconds = timestamp;
+  const timestampInSeconds =
+    timestamp < productStartInSeconds ? productStartInSeconds : timestamp;
 
   const coinList = Array.from(new Set(coins.split(" ")));
 
