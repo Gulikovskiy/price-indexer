@@ -6,8 +6,8 @@ import {
 import { Price, PriceRawResponse, ValidDate } from "./interfaces";
 import moment from "moment";
 
-export const ceilN = (n: bigint, d: bigint) =>
-  n / d + (n % d ? BigInt(1) : BigInt(0));
+const apiKey = process.env.CG_DEMO_API_KEY;
+if (!apiKey) throw new ReferenceError("api key is undefined");
 
 export function isValidDate(date: number): date is ValidDate {
   const currentTimestamp = BigInt(moment().unix() * 1000);
@@ -21,7 +21,7 @@ export const getDayId = (timestamp: number) =>
   (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
 
 export const getCoingeckoURL = (id: string, from: number, to: number) =>
-  `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}`;
+  `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
 
 export const parsePriceResponse = (res: PriceRawResponse) => {
   const arr: Price[] = [];
@@ -35,7 +35,7 @@ export const parsePriceResponse = (res: PriceRawResponse) => {
       arr.push({
         id,
         timestamp: startOfTheDay * 1000,
-        price: price.toString(),
+        price: price.toFixed(8),
       });
   }
   return arr;
@@ -44,7 +44,7 @@ export const parsePriceResponse = (res: PriceRawResponse) => {
 //ERRORS
 export const coingeckoAPIErrorResponse = (res: Response) => {
   return {
-    code: res.status,
+    code: 500,
     message: `Coingecko API failed. ${res.statusText}`,
   };
 };

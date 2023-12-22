@@ -10,18 +10,14 @@ import {
   parsePriceResponse,
 } from "./utils";
 
-const apiKey = process.env.CG_DEMO_API_KEY;
-
-if (!apiKey) throw new ReferenceError("api key is undefined");
-
 const fetchData = async (symbol: string, start: number, finish: number) => {
   console.log("FETCH: ", "start: ", start, "finish: ", finish);
   const id = coinList[symbol];
   const url = getCoingeckoURL(id, start, finish);
-  console.log("URL: ", url);
-  const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
   const res = await fetch(
-    `https://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&url=${newURL}`
+    `https://api.scraperapi.com/?api_key=${
+      process.env.SCRAPER_API_KEY
+    }&url=${encodeURIComponent(url)}`
   );
   if (res.status !== 200) {
     throw coingeckoAPIErrorResponse(res);
@@ -37,7 +33,6 @@ export const fetchCoingeckoPrices = async (
   timestamp: number,
   days: number
 ): Promise<PriceDataResponse> => {
-  const currentTimestamp = moment().unix();
   const startTimestamp = moment(timestamp * 1000)
     .utc()
     .startOf("day")
@@ -48,11 +43,8 @@ export const fetchCoingeckoPrices = async (
     .unix();
 
   const data: PriceDataResponse = {};
-
   const stored = await kv.hgetall(userKey);
   // TODO: const data = await kv.zrange('mysortedset', 1, 3);
-
-  //call 1day
 
   const dayStartId = getDayId(startTimestamp);
   const dayFinishId = getDayId(finishTimestamp);

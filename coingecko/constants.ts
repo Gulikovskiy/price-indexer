@@ -10,4 +10,4 @@ export const productStartInMilliseconds = 1653350400 * 1000; //1653356522
 export const refreshInterval = 5; //minutes
 export const precision = 8;
 
-export const userKey = "new_user";
+export const userKey = "user1";
