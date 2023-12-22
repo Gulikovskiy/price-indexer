@@ -1,4 +1,4 @@
-export const coinList: { [symbol: string]: string } = {
+export const coinList = {
   //PRODUCTS
   CAI: "colony-avalanche-index",
   PDI: "phuture-defi-index",
@@ -74,4 +74,6 @@ export const coinList: { [symbol: string]: string } = {
   SAVAX: "benqi-liquid-staked-avax",
   //CAI(inactive)
   QI: "benqi",
-};
+} as const;
+
+export type TokenId = (typeof coinList)[keyof typeof coinList];

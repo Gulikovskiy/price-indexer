@@ -1,19 +1,36 @@
-// import "server-only";
 import { kv } from "@vercel/kv";
 import moment from "moment";
-import {
-  millisecondsInDay,
-  productStartInMilliseconds,
-  userKey,
-} from "./constants";
+import { userKey } from "./constants";
 import { Price, PriceDataResponse, PriceRawResponse } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
   coingeckoAPIErrorResponse,
   getCoingeckoURL,
-  invalidSymbolErrorResponse,
+  getDayId,
   parsePriceResponse,
 } from "./utils";
+
+const apiKey = process.env.CG_DEMO_API_KEY;
+
+if (!apiKey) throw new ReferenceError("api key is undefined");
+
+const fetchData = async (symbol: string, start: number, finish: number) => {
+  console.log("FETCH: ", "start: ", start, "finish: ", finish);
+  const id = coinList[symbol];
+  const url = getCoingeckoURL(id, start, finish);
+  console.log("URL: ", url);
+  const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
+  const res = await fetch(
+    `https://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&url=${newURL}`
+  );
+  if (res.status !== 200) {
+    throw coingeckoAPIErrorResponse(res);
+  }
+  const rawResponse = (await res.json()) as PriceRawResponse;
+  //TODO: validate response with zod
+
+  return parsePriceResponse(rawResponse);
+};
 
 export const fetchCoingeckoPrices = async (
   assets: string[],
@@ -32,72 +49,21 @@ export const fetchCoingeckoPrices = async (
 
   const data: PriceDataResponse = {};
 
-  //TODO: floor day timestamp
-  const apiKey = process.env.CG_DEMO_API_KEY ?? "";
-
-  const fetchData = async (symbol: string, start: number, finish: number) => {
-    console.log("FETCH: ", "start: ", start, "finish: ", finish);
-    const id = coinList[symbol];
-    const url = getCoingeckoURL(id, start, finish);
-    console.log("URL: ", url);
-    const newURL = encodeURIComponent(`${url}&x_cg_demo_api_key=${apiKey}`);
-    const res = await fetch(
-      `https://api.scraperapi.com/?api_key=${process.env.SCRAPER_API_KEY}&url=${newURL}`
-    );
-    if (res.status !== 200) {
-      throw coingeckoAPIErrorResponse(res);
-    }
-    const rawResponse = (await res.json()) as PriceRawResponse;
-    return parsePriceResponse(symbol, rawResponse);
-  };
-
   const stored = await kv.hgetall(userKey);
+  // TODO: const data = await kv.zrange('mysortedset', 1, 3);
+
+  //call 1day
+
+  const dayStartId = getDayId(startTimestamp);
+  const dayFinishId = getDayId(finishTimestamp);
 
   await Promise.all(
     assets.map(async (symbol) => {
-      const id = coinList[symbol];
-      if (id === undefined) {
-        throw invalidSymbolErrorResponse(symbol);
-      }
-
       const storedAssetData = stored
         ? (stored[symbol] as Price[]) || null
         : null;
-      const isDataInStorage = storedAssetData !== null;
 
-      if (isDataInStorage) {
-        const latestTimeStamp =
-          storedAssetData[storedAssetData.length - 1].timestamp;
-
-        const dayStartId =
-          (startTimestamp * 1000 - productStartInMilliseconds) /
-          millisecondsInDay;
-
-        const dayFinishId =
-          (finishTimestamp * 1000 - productStartInMilliseconds) /
-          millisecondsInDay;
-
-        const lastStoredTimestamp =
-          storedAssetData[storedAssetData.length - 1].timestamp;
-
-        if (lastStoredTimestamp < finishTimestamp * 1000) {
-          const newLatestPrices = await fetchData(
-            symbol,
-            moment(lastStoredTimestamp).unix(),
-            finishTimestamp
-          );
-
-          const wholeUpdatedArray = [
-            ...storedAssetData.slice(0, storedAssetData.length - 1),
-            ...newLatestPrices,
-          ];
-
-          kv.hset(userKey, { [symbol]: wholeUpdatedArray });
-          data[symbol] = wholeUpdatedArray.slice(dayStartId, dayFinishId);
-        } else {
-          data[symbol] = storedAssetData.slice(dayStartId, dayFinishId);
-        }
-      } else {
+      if (!storedAssetData) {
         const response = await fetchData(
           symbol,
           startTimestamp,
@@ -106,7 +72,27 @@ export const fetchCoingeckoPrices = async (
 
         kv.hset(userKey, { [symbol]: response });
         data[symbol] = response;
+        return;
       }
+      const { id, timestamp } = storedAssetData[storedAssetData.length - 1];
+
+      if (id >= dayFinishId) {
+        data[symbol] = storedAssetData.slice(dayStartId, dayFinishId);
+        return;
+      }
+      const latestPrices = await fetchData(
+        symbol,
+        moment(timestamp).unix(),
+        finishTimestamp
+      );
+
+      const wholeUpdatedArray = [
+        ...storedAssetData.slice(0, -1),
+        ...latestPrices,
+      ];
+
+      kv.hset(userKey, { [symbol]: wholeUpdatedArray });
+      data[symbol] = wholeUpdatedArray.slice(dayStartId, dayFinishId);
     })
   );
 

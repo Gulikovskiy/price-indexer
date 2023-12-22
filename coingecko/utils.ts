@@ -17,27 +17,27 @@ export function isValidDate(date: number): date is ValidDate {
   );
 }
 
+export const getDayId = (timestamp: number) =>
+  (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
+
 export const getCoingeckoURL = (id: string, from: number, to: number) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}`;
 
-export const parsePriceResponse = (symbol: string, res: PriceRawResponse) => {
-  //TODO add class-transform / validation
+export const parsePriceResponse = (res: PriceRawResponse) => {
   const arr: Price[] = [];
 
-  res.prices.map((el) => {
-    const timestamp = el[0];
-    const startOfTheDay = moment(timestamp).utc().startOf("day").unix() * 1000;
+  for (const [timestamp, price] of res.prices) {
+    const startOfTheDay = moment(timestamp).utc().startOf("day").unix();
 
-    const id = (startOfTheDay - productStartInMilliseconds) / millisecondsInDay;
+    const id = getDayId(startOfTheDay);
 
-    const isArrayFilledWithCurrentId = arr.some((el) => el.id === id);
-    if (arr.length === 0 || !isArrayFilledWithCurrentId)
+    if (!arr.some((el) => el.id === id))
       arr.push({
         id,
-        timestamp: startOfTheDay,
-        price: el[1].toString(),
-      } as Price);
-  });
+        timestamp: startOfTheDay * 1000,
+        price: price.toString(),
+      });
+  }
   return arr;
 };
 
@@ -56,10 +56,10 @@ export const invalidTimestampErrorResponse = (timestamp: unknown) => {
   };
 };
 
-export const invalidSymbolErrorResponse = (symbol: unknown) => {
+export const invalidSymbolErrorResponse = (symbol: string[]) => {
   return {
     code: 400,
-    message: `${symbol} symbol does not exist or not supported`,
+    message: `${symbol.join(", ")} not exist or not supported`,
   };
 };
 
