@@ -9,13 +9,13 @@ import {
   getCoingeckoLastPriceURL,
   getDayId,
   parsePriceResponse,
+  getDayTimestampFromId,
+  parseKVDataToPrice,
 } from "./utils";
 
 const fetchData = async (symbol: string, start: number, finish: number) => {
-  console.log("FETCH: ", "start: ", start, "finish: ", finish);
   const id = coinList[symbol];
   const url = getCoingeckoRangeURL(id, start, finish);
-  console.log("url: ", url);
   const res = await fetch(
     `https://api.scraperapi.com/?api_key=${
       process.env.SCRAPER_API_KEY
@@ -32,11 +32,11 @@ const fetchData = async (symbol: string, start: number, finish: number) => {
 
 const fetchFreshPrice = async (symbol: string, latestId: number) => {
   const url = getCoingeckoLastPriceURL(coinList[symbol]);
-  console.log("fetchFreshPrice url: ", url);
   const res = await fetch(
     `https://api.scraperapi.com/?api_key=${
       process.env.SCRAPER_API_KEY
-    }&url=${encodeURIComponent(url)}`
+    }&url=${encodeURIComponent(url)}`,
+    { next: { revalidate: 300 } }
   );
 
   if (res.status !== 200) {
@@ -55,23 +55,31 @@ const fetchFreshPrice = async (symbol: string, latestId: number) => {
 
 export const fetchCoingeckoPrices = async (
   assets: string[],
-  timestamp: number,
+  start: number,
   days: number
 ): Promise<PriceDataResponse> => {
-  const startTimestamp = moment(timestamp * 1000)
+  const startTimestamp = moment(start * 1000)
     .utc()
     .startOf("day")
     .unix();
 
-  const finishTimestamp = moment(startTimestamp * 1000)
+  const finish = moment(startTimestamp * 1000)
     .utc()
     .add(days, "days")
     .startOf("day")
     .unix();
 
+  const currentTimestamp = moment().unix();
+  const finishTimestamp =
+    finish > currentTimestamp
+      ? moment(currentTimestamp * 1000)
+          .utc()
+          .startOf("day")
+          .unix()
+      : finish;
+
   const data: PriceDataResponse = {};
   const stored = await kv.hgetall(userKey);
-  console.log("stored: ", stored);
 
   const dayStartId = getDayId(startTimestamp);
   const dayFinishId = getDayId(finishTimestamp);
@@ -79,7 +87,7 @@ export const fetchCoingeckoPrices = async (
   await Promise.all(
     assets.map(async (symbol) => {
       const storedAssetData = stored
-        ? (stored[symbol] as Price[]) || null
+        ? (stored[symbol] as [id: number, price: string][]) || null
         : null;
 
       if (!storedAssetData) {
@@ -91,65 +99,82 @@ export const fetchCoingeckoPrices = async (
 
         const lastPrice = await fetchFreshPrice(
           symbol,
-          response[response.length - 1].id
+          response[response.length - 1][0] // ID
         );
 
         const updatedArray = [
-          ...response.slice(0, response.length - 1),
+          ...parseKVDataToPrice(response.slice(0, response.length - 1)),
           lastPrice,
         ];
 
-        // kv.hset(userKey, { [symbol]: updatedArray });
+        kv.hset(userKey, { [symbol]: response });
         data[symbol] = updatedArray;
         return;
       }
-      const { id, timestamp } = storedAssetData[storedAssetData.length - 1];
-      const currentTimestamp = moment().unix() * 1000;
 
-      const isStoredDataFresh =
-        storedAssetData[storedAssetData.length - 1].timestamp +
-          refreshInterval * millisecondsInMinute >
-        currentTimestamp;
+      const { 0: lastStoredId } = storedAssetData[storedAssetData.length - 1];
 
-      if (id >= dayFinishId - 1 && isStoredDataFresh) {
-        data[symbol] = storedAssetData.slice(dayStartId, dayFinishId);
-        return;
+      if (lastStoredId < dayFinishId) {
+        const lastStoredTimestamp = getDayTimestampFromId(lastStoredId);
+        const prices = await fetchData(
+          symbol,
+          moment(lastStoredTimestamp).unix(),
+          moment(finishTimestamp * 1000)
+            .add(5, "minute")
+            .unix()
+        );
+
+        const freshPrice = await fetchFreshPrice(
+          symbol,
+          prices[prices.length - 1][0] // ID
+        );
+
+        const updatedKVStorageData = [
+          ...storedAssetData.slice(0, storedAssetData.length - 1),
+          ...prices,
+        ];
+
+        kv.hset(userKey, { [symbol]: updatedKVStorageData });
+
+        const updatedPrices = [
+          ...parseKVDataToPrice(
+            storedAssetData.slice(0, storedAssetData.length - 1)
+          ),
+          ...parseKVDataToPrice(prices.slice(0, prices.length - 1)),
+          freshPrice,
+        ];
+
+        data[symbol] = updatedPrices;
       }
-      const prices = await fetchData(
-        symbol,
-        moment(timestamp).unix(),
-        moment(finishTimestamp * 1000)
-          .add(5, "minute")
-          .unix()
-      );
 
-      const updatedArray = [
-        ...storedAssetData.slice(0, storedAssetData.length - 1),
-        ...prices,
-      ];
+      if (lastStoredId >= dayFinishId) {
+        const startOfTheDay = moment(currentTimestamp * 1000)
+          .utc()
+          .startOf("day")
+          .unix();
 
-      if (
-        updatedArray[updatedArray.length - 1].timestamp +
-          refreshInterval * millisecondsInMinute >
-        currentTimestamp
-      ) {
-        // kv.hset(userKey, { [symbol]: updatedArray });
-        data[symbol] = updatedArray.slice(dayStartId, dayFinishId);
-        return;
+        if (dayFinishId < getDayId(startOfTheDay)) {
+          data[symbol] = parseKVDataToPrice(
+            storedAssetData.slice(dayStartId, dayFinishId)
+          );
+
+          return;
+        }
+
+        const freshPrice = await fetchFreshPrice(
+          symbol,
+          storedAssetData[storedAssetData.length - 1][0] // ID
+        );
+
+        const updatedPrices = [
+          ...parseKVDataToPrice(
+            storedAssetData.slice(0, storedAssetData.length - 1)
+          ),
+          freshPrice,
+        ];
+
+        data[symbol] = updatedPrices;
       }
-
-      const lastPrice = await fetchFreshPrice(
-        symbol,
-        updatedArray[updatedArray.length - 1].id
-      );
-
-      const wholeUpdatedArray = [
-        ...updatedArray.slice(0, updatedArray.length - 1),
-        lastPrice,
-      ];
-
-      // kv.hset(userKey, { [symbol]: wholeUpdatedArray });
-      data[symbol] = wholeUpdatedArray;
     })
   );
 

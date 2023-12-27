@@ -20,6 +20,9 @@ export function isValidDate(date: number): date is ValidDate {
 export const getDayId = (timestamp: number) =>
   (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
 
+export const getDayTimestampFromId = (id: number) =>
+  id * millisecondsInDay + productStartInMilliseconds;
+
 export const getCoingeckoRangeURL = (id: string, from: number, to: number) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
 
@@ -27,22 +30,26 @@ export const getCoingeckoLastPriceURL = (id: string) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=1&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
 
 export const parsePriceResponse = (res: PriceRawResponse) => {
-  const arr: Price[] = [];
+  const arr: [id: number, price: string][] = [];
 
   for (const [timestamp, price] of res.prices) {
     const startOfTheDay = moment(timestamp).utc().startOf("day").unix();
 
     const id = getDayId(startOfTheDay);
 
-    if (!arr.some((el) => el.id === id))
-      arr.push({
-        id,
-        timestamp: startOfTheDay * 1000,
-        price: price.toFixed(8),
-      });
+    if (!arr.some((el) => el[0] === id)) arr.push([id, price.toFixed(8)]);
   }
   return arr;
 };
+
+export const parseKVDataToPrice = (arr: [id: number, price: string][]) =>
+  arr.map((el) => {
+    return {
+      id: el[0], // ID
+      timestamp: getDayTimestampFromId(el[0]), // ID
+      price: el[1], // PRICE
+    } as Price;
+  });
 
 //ERRORS
 export const coingeckoAPIErrorResponse = (res: Response) => {

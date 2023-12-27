@@ -21,7 +21,6 @@ export const createJsonResponse = (
   body: any,
   status: number = 200
 ) => {
-  console.log("body: ", body);
   return cors(
     req,
     new Response(body, {

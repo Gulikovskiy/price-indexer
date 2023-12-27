@@ -1,7 +1,6 @@
 export const coinList = {
   //PRODUCTS
   CAI: "colony-avalanche-index",
-  PDI: "phuture-defi-index",
 
   //BLOCKCHAINS & CHAINS & FAMOUS
   BTC: "bitcoin",
@@ -18,7 +17,6 @@ export const coinList = {
   NEAR: "near",
   FTM: "fantom",
   GNO: "gnosis",
-  TON: "the-open-network",
   ARB: "arbitrum",
   LINK: "chainlink",
   LTC: "litecoin",
