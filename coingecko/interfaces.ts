@@ -5,9 +5,9 @@ export type PriceRawResponse = {
 };
 
 export type Price = {
+  id: number;
   timestamp: number;
   price: string;
-  id: number;
 };
 
 export type PriceDataResponse = { [symbol: string]: Price[] | null };

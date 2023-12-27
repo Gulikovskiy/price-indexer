@@ -20,8 +20,11 @@ export function isValidDate(date: number): date is ValidDate {
 export const getDayId = (timestamp: number) =>
   (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
 
-export const getCoingeckoURL = (id: string, from: number, to: number) =>
+export const getCoingeckoRangeURL = (id: string, from: number, to: number) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
+
+export const getCoingeckoLastPriceURL = (id: string) =>
+  `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=1&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
 
 export const parsePriceResponse = (res: PriceRawResponse) => {
   const arr: Price[] = [];

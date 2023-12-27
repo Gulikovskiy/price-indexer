@@ -23,7 +23,6 @@ export const coinList = {
   LINK: "chainlink",
   LTC: "litecoin",
   XLM: "stellar",
-  TIA: "celestia",
   GRT: "the-graph",
   ALGO: "algorand",
 
@@ -39,7 +38,6 @@ export const coinList = {
   TUSD: "true-usd",
   FDUSD: "first-digital-usd",
   BUSD: "binance-usd",
-  USDD: "usdd",
 
   //WRAPPED
   WBTC: "wrapped-bitcoin",
