@@ -1,10 +1,11 @@
+import moment from "moment";
+import { z } from "zod";
 import {
   millisecondsInDay,
   precision,
   productStartInMilliseconds,
 } from "./constants";
 import { Price, PriceRawResponse, ValidDate } from "./interfaces";
-import moment from "moment";
 
 const apiKey = process.env.CG_DEMO_API_KEY;
 if (!apiKey) throw new ReferenceError("api key is undefined");
@@ -29,51 +30,78 @@ export const getCoingeckoRangeURL = (id: string, from: number, to: number) =>
 export const getCoingeckoLastPriceURL = (id: string) =>
   `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=1&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
 
-export const parsePriceResponse = (res: PriceRawResponse) => {
-  const arr: [id: number, price: string][] = [];
+export const parsePriceResponse = (prices: PriceRawResponse) => {
+  const arr: [id: number, price: number][] = [];
 
-  for (const [timestamp, price] of res.prices) {
+  for (const { timestamp, price } of prices) {
     const startOfTheDay = moment(timestamp).utc().startOf("day").unix();
 
     const id = getDayId(startOfTheDay);
 
-    if (!arr.some((el) => el[0] === id)) arr.push([id, price.toFixed(8)]);
+    if (!arr.some((el) => el[0] === id)) arr.push([id, price]);
   }
   return arr;
 };
 
-export const parseKVDataToPrice = (arr: [id: number, price: string][]) =>
+export const parseKVDataToPrice = (arr: [id: number, price: number][]) =>
   arr.map((el) => {
     return {
       id: el[0], // ID
       timestamp: getDayTimestampFromId(el[0]), // ID
-      price: el[1], // PRICE
+      price: el[1].toFixed(8), // PRICE
     } as Price;
   });
 
-//ERRORS
-export const coingeckoAPIErrorResponse = (res: Response) => {
-  return {
-    code: 500,
-    message: `Coingecko API failed. ${res.statusText}`,
-  };
-};
+export const ResponseValidation = z.object({
+  prices: z.array(
+    z.tuple([z.number(), z.number()]).transform(([timestamp, price]) => ({
+      timestamp,
+      price,
+    }))
+  ),
+  market_caps: z.array(
+    z.tuple([z.number(), z.number()]).transform(([timestamp, marketCap]) => ({
+      timestamp,
+      marketCap,
+    }))
+  ),
+  total_volumes: z.array(
+    z.tuple([z.number(), z.number()]).transform(([timestamp, volume]) => ({
+      timestamp,
+      volume,
+    }))
+  ),
+});
 
-export const invalidTimestampErrorResponse = (timestamp: unknown) => {
-  return {
-    code: 400,
-    message: `Timestamp is invalid: ${timestamp}`,
-  };
+//ERRORS
+
+export enum ErrorType {
+  InvalidSearchParams = 10001,
+  InvalidSymbol = 10002,
+  InvalidCoingeckoResponse = 10003,
+  InvalidResponseTypes = 10004,
+}
+
+export const invalidSearchParamsError = {
+  code: ErrorType.InvalidSearchParams,
+  message: "Invalid search params",
 };
 
 export const invalidSymbolErrorResponse = (symbol: string[]) => {
   return {
-    code: 400,
+    code: ErrorType.InvalidSymbol,
     message: `${symbol.join(", ")} not exist or not supported`,
   };
 };
 
-export const invalidSearchParamsError = {
-  code: 400,
-  message: "Invalid search params",
+export const coingeckoAPIErrorResponse = (res: Response) => {
+  return {
+    code: ErrorType.InvalidCoingeckoResponse,
+    message: `Coingecko API failed. ${res.statusText}`,
+  };
+};
+
+export const invalidResponseTypesError = {
+  code: ErrorType.InvalidResponseTypes,
+  message: "Invalid coingecko response types",
 };

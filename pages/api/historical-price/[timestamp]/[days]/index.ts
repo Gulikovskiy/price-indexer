@@ -1,37 +1,31 @@
 import { NextApiRequest, NextApiResponse } from "next/types";
+import { z } from "zod";
 import { fetchCoingeckoPrices } from "../../../../../coingecko/coingecko-fetcher";
 import { productStartInSeconds } from "../../../../../coingecko/constants";
+import { coinList } from "../../../../../coingecko/supported-coins";
 import {
   invalidSearchParamsError,
   invalidSymbolErrorResponse,
-  invalidTimestampErrorResponse,
-  isValidDate,
 } from "../../../../../coingecko/utils";
-import { coinList } from "../../../../../coingecko/supported-coins";
+
+const SearchParams = z.object({
+  timestamp: z.coerce.number().int().positive(),
+  days: z.coerce.number().int().positive(),
+  coins: z.coerce.string(),
+});
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { coins: rawCoins, timestamp: rawTimestamp, days: rawDays } = req.query;
-
-  const timestamp = Number(
-    Array.isArray(rawTimestamp) ? rawTimestamp[0] : rawTimestamp
-  );
-  const days = Number(Array.isArray(rawDays) ? rawDays[0] : rawDays);
-
-  const coins = Array.isArray(rawCoins) ? rawCoins[0] : rawCoins;
-
-  const properParams =
-    !Number.isNaN(timestamp) &&
-    !Number.isNaN(days) &&
-    timestamp > 0 &&
-    coins &&
-    days;
-  if (!properParams) {
+  const parsed = SearchParams.safeParse({
+    timestamp: rawTimestamp,
+    days: rawDays,
+    coins: rawCoins,
+  });
+  if (!parsed.success) {
     return res.status(400).json(invalidSearchParamsError);
   }
 
-  if (!isValidDate(timestamp)) {
-    return res.status(400).json(invalidTimestampErrorResponse(timestamp));
-  }
+  const { coins, days, timestamp } = parsed.data;
 
   const timestampInSeconds = Math.max(timestamp, productStartInSeconds);
 

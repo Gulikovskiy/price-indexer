@@ -1,56 +1,34 @@
 import { kv } from "@vercel/kv";
 import moment from "moment";
-import { millisecondsInMinute, refreshInterval, userKey } from "./constants";
-import { Price, PriceDataResponse, PriceRawResponse } from "./interfaces";
+import { userKey } from "./constants";
+import { PriceDataResponse } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
+  ResponseValidation,
   coingeckoAPIErrorResponse,
   getCoingeckoRangeURL,
-  getCoingeckoLastPriceURL,
   getDayId,
-  parsePriceResponse,
   getDayTimestampFromId,
+  invalidResponseTypesError,
   parseKVDataToPrice,
+  parsePriceResponse,
 } from "./utils";
 
 const fetchData = async (symbol: string, start: number, finish: number) => {
   const id = coinList[symbol];
   const url = getCoingeckoRangeURL(id, start, finish);
-  const res = await fetch(
-    `https://api.scraperapi.com/?api_key=${
-      process.env.SCRAPER_API_KEY
-    }&url=${encodeURIComponent(url)}`
-  );
+  const res = await fetch(`${url}`);
   if (res.status !== 200) {
     throw coingeckoAPIErrorResponse(res);
   }
-  const rawResponse = (await res.json()) as PriceRawResponse;
-  //TODO: validate response with zod
+  const rawResponse = await res.json();
 
-  return parsePriceResponse(rawResponse);
-};
-
-const fetchFreshPrice = async (symbol: string, latestId: number) => {
-  const url = getCoingeckoLastPriceURL(coinList[symbol]);
-  const res = await fetch(
-    `https://api.scraperapi.com/?api_key=${
-      process.env.SCRAPER_API_KEY
-    }&url=${encodeURIComponent(url)}`,
-    { next: { revalidate: 300 } }
-  );
-
-  if (res.status !== 200) {
-    throw coingeckoAPIErrorResponse(res);
+  const parsed = ResponseValidation.safeParse(rawResponse);
+  if (!parsed.success) {
+    throw invalidResponseTypesError;
   }
-  const rawResponse = (await res.json()) as PriceRawResponse;
-  const latestRawPrice = rawResponse.prices[rawResponse.prices.length - 1];
-  const latestPrice: Price = {
-    id: latestId,
-    timestamp: latestRawPrice[0],
-    price: latestRawPrice[1].toFixed(8),
-  };
-
-  return latestPrice;
+  const { prices } = parsed.data;
+  return parsePriceResponse(prices);
 };
 
 export const fetchCoingeckoPrices = async (
@@ -87,7 +65,7 @@ export const fetchCoingeckoPrices = async (
   await Promise.all(
     assets.map(async (symbol) => {
       const storedAssetData = stored
-        ? (stored[symbol] as [id: number, price: string][]) || null
+        ? (stored[symbol] as [id: number, price: number][]) || null
         : null;
 
       if (!storedAssetData) {
@@ -97,15 +75,9 @@ export const fetchCoingeckoPrices = async (
           finishTimestamp
         );
 
-        const lastPrice = await fetchFreshPrice(
-          symbol,
-          response[response.length - 1][0] // ID
+        const updatedArray = parseKVDataToPrice(
+          response.slice(0, response.length - 1)
         );
-
-        const updatedArray = [
-          ...parseKVDataToPrice(response.slice(0, response.length - 1)),
-          lastPrice,
-        ];
 
         kv.hset(userKey, { [symbol]: response });
         data[symbol] = updatedArray;
@@ -124,16 +96,10 @@ export const fetchCoingeckoPrices = async (
             .unix()
         );
 
-        const freshPrice = await fetchFreshPrice(
-          symbol,
-          prices[prices.length - 1][0] // ID
-        );
-
         const updatedKVStorageData = [
           ...storedAssetData.slice(0, storedAssetData.length - 1),
           ...prices,
         ];
-
         kv.hset(userKey, { [symbol]: updatedKVStorageData });
 
         const updatedPrices = [
@@ -141,7 +107,6 @@ export const fetchCoingeckoPrices = async (
             storedAssetData.slice(0, storedAssetData.length - 1)
           ),
           ...parseKVDataToPrice(prices.slice(0, prices.length - 1)),
-          freshPrice,
         ];
 
         data[symbol] = updatedPrices;
@@ -157,21 +122,12 @@ export const fetchCoingeckoPrices = async (
           data[symbol] = parseKVDataToPrice(
             storedAssetData.slice(dayStartId, dayFinishId)
           );
-
           return;
         }
 
-        const freshPrice = await fetchFreshPrice(
-          symbol,
-          storedAssetData[storedAssetData.length - 1][0] // ID
+        const updatedPrices = parseKVDataToPrice(
+          storedAssetData.slice(0, storedAssetData.length - 1)
         );
-
-        const updatedPrices = [
-          ...parseKVDataToPrice(
-            storedAssetData.slice(0, storedAssetData.length - 1)
-          ),
-          freshPrice,
-        ];
 
         data[symbol] = updatedPrices;
       }

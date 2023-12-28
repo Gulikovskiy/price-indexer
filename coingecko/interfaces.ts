@@ -1,8 +1,7 @@
 export type PriceRawResponse = {
-  prices: [timestamp: number, price: number][];
-  market_caps: [timestamp: number, marketCap: number][];
-  total_volumes: [timestamp: number, volume: number][];
-};
+  timestamp: number;
+  price: number;
+}[];
 
 export type Price = {
   id: number;
