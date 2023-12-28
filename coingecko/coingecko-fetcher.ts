@@ -125,9 +125,7 @@ export const fetchCoingeckoPrices = async (
           return;
         }
 
-        const updatedPrices = parseKVDataToPrice(
-          storedAssetData.slice(0, storedAssetData.length - 1)
-        );
+        const updatedPrices = parseKVDataToPrice(storedAssetData);
 
         data[symbol] = updatedPrices;
       }
