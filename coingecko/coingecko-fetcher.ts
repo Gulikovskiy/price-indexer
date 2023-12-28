@@ -113,21 +113,10 @@ export const fetchCoingeckoPrices = async (
       }
 
       if (lastStoredId >= dayFinishId) {
-        const startOfTheDay = moment(currentTimestamp * 1000)
-          .utc()
-          .startOf("day")
-          .unix();
-
-        if (dayFinishId < getDayId(startOfTheDay)) {
-          data[symbol] = parseKVDataToPrice(
-            storedAssetData.slice(dayStartId, dayFinishId)
-          );
-          return;
-        }
-
-        const updatedPrices = parseKVDataToPrice(storedAssetData);
-
-        data[symbol] = updatedPrices;
+        data[symbol] = parseKVDataToPrice(
+          storedAssetData.slice(dayStartId, dayFinishId + 1)
+        );
+        return;
       }
     })
   );
