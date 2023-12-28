@@ -10,5 +10,3 @@ export type Price = {
 };
 
 export type PriceDataResponse = { [symbol: string]: Price[] | null };
-
-export type ValidDate = number & { __brand: "ValidDate" };
