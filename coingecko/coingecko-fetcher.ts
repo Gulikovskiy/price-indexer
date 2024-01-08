@@ -16,13 +16,19 @@ import {
 const fetchData = async (symbol: string, start: number, finish: number) => {
   const id = coinList[symbol];
   const url = getCoingeckoRangeURL(id, start, finish);
-  const res = await fetch(url);
+  const res = await fetch(
+    `https://api.scraperapi.com/?api_key=${
+      process.env.SCRAPER_API_KEY
+    }&url=${encodeURIComponent(url)}`
+  );
+
   if (res.status !== 200) {
     throw coingeckoAPIErrorResponse(res);
   }
   const rawResponse = await res.json();
 
   const parsed = CoingeckoResponse.safeParse(rawResponse);
+
   if (parsed.success === false) {
     console.error(parsed.error.issues);
     throw invalidResponseTypesError;
@@ -74,7 +80,6 @@ export const fetchCoingeckoPrices = async (
           startTimestamp,
           finishTimestamp
         );
-
         data[symbol] = KVDataToPrice.parse(response.slice(0, -1));
         kv.hset(userKey, { [symbol]: response });
 
@@ -101,7 +106,7 @@ export const fetchCoingeckoPrices = async (
 
         data[symbol] = KVDataToPrice.parse([
           ...storedAssetData.slice(0, -1),
-          ...prices.slice(0, -1),
+          ...prices,
         ]);
       }
 
