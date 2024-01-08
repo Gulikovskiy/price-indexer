@@ -70,6 +70,12 @@ export const coinList = {
   SAVAX: "benqi-liquid-staked-avax",
   //CAI(inactive)
   QI: "benqi",
+  //test
+  LEO: "leo-token",
+  ETC: "ethereum-classic",
+  BCH: "bitcoin-cash",
+  APT: "aptos",
+  VET: "vechain",
 } as const;
 
 export type TokenId = (typeof coinList)[keyof typeof coinList];
