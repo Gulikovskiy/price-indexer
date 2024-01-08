@@ -80,7 +80,7 @@ export const fetchCoingeckoPrices = async (
           startTimestamp,
           finishTimestamp
         );
-        data[symbol] = KVDataToPrice.parse(response.slice(0, -1));
+        data[symbol] = KVDataToPrice.parse(response);
         kv.hset(userKey, { [symbol]: response });
 
         return;
