@@ -74,9 +74,6 @@ export const coinList: { [key: string]: string } = {
   LEO: "leo-token",
   ETC: "ethereum-classic",
   BCH: "bitcoin-cash",
-  APT: "aptos",
-  VET: "vechain",
-  MNT: "mantle",
 } as const;
 
 export type TokenId = (typeof coinList)[keyof typeof coinList];

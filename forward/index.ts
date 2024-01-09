@@ -12,12 +12,17 @@ export default function forward(route: string) {
     try {
       const r = await fetchPriceFrom0x(chainId, endpoint);
       if (r === null) {
-        return createErrorResponse(req, "API failed", r.status);
+        return createErrorResponse(req, "API failed");
       }
 
       return createJsonResponse(req, r.body, 200);
-    } catch (e) {
-      return createErrorResponse(req, e.message, e.status);
+    } catch (event) {
+      const e = event as { message?: string; status?: number };
+      return createErrorResponse(
+        req,
+        e.message ?? "API failed",
+        e.status ?? 500
+      );
     }
   };
 }

@@ -1,25 +1,28 @@
+import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next/types";
 import { z } from "zod";
 import { fetchCoingeckoPrices } from "../../../../../coingecko/coingecko-fetcher";
 import { productStartInSeconds } from "../../../../../coingecko/constants";
-import { coinList } from "../../../../../coingecko/supported-coins";
 import {
   ErrorResponse,
   ErrorType,
-  zodErrorResponse,
   invalidSymbolErrorResponse,
   serverError,
+  zodErrorResponse,
 } from "../../../../../coingecko/errors";
 import {
   DefaultError,
   PriceDataResponse,
 } from "../../../../../coingecko/interfaces";
+import { coinList } from "../../../../../coingecko/supported-coins";
 
 const SearchParams = z.object({
   timestamp: z.coerce
     .number()
     .int()
     .positive()
+    .min(productStartInSeconds)
+    .max(moment().unix())
     .transform((ts) => Math.max(ts, productStartInSeconds)),
   days: z.coerce.number().int().positive(),
   coins: z.coerce

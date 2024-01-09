@@ -5,11 +5,11 @@ import { coingeckoAPIErrorResponse, invalidResponseTypesError } from "./errors";
 import { PriceDataResponse } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
+  CoingeckoResponse,
   getCoingeckoRangeURL,
   getDayId,
   getTimestampFromDayId,
   KVDataToPrice,
-  parsePriceResponse,
 } from "./utils";
 
 const fetchData = async (symbol: string, start: number, finish: number) => {
@@ -21,11 +21,18 @@ const fetchData = async (symbol: string, start: number, finish: number) => {
   );
 
   if (res.status !== 200) {
-    throw coingeckoAPIErrorResponse(res);
+    console.error({ res });
+    throw coingeckoAPIErrorResponse;
   }
   const rawResponse = await res.json();
 
-  return parsePriceResponse(rawResponse);
+  const parsed = CoingeckoResponse.safeParse(rawResponse);
+
+  if (!parsed.success) {
+    console.error(parsed.error.issues);
+    throw invalidResponseTypesError;
+  }
+  return parsed.data.prices;
 };
 
 export const fetchCoingeckoPrices = async (
@@ -63,6 +70,7 @@ export const fetchCoingeckoPrices = async (
 
   await Promise.all(
     assets.map(async (symbol) => {
+      //INFO: potentially stored data can be null
       const storedAssetData = stored ? stored[symbol] || null : null;
 
       if (!storedAssetData) {

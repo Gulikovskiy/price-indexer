@@ -1,10 +1,6 @@
-export type Price = {
-  id: number;
-  timestamp: number;
-  price: string;
-};
+export type Price = { timestamps: number[]; prices: string[] };
 
-export type PriceDataResponse = { [symbol: string]: Price[] | null };
+export type PriceDataResponse = { [symbol: string]: Price | null };
 
 export type DefaultError = {
   code: number;

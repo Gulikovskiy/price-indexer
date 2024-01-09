@@ -1,4 +1,4 @@
-const endpointPrefixes = {
+const endpointPrefixes: { [key: number]: string } = {
   1: "",
   137: "polygon.",
   56: "bsc.",
@@ -23,9 +23,11 @@ export const fetchPriceFrom0x = async (chainId: number, endpoint: string) => {
   const url = `https://${prefix}api.0x.org/swap/v1/${endpoint}`;
 
   let response = await fetch(url, {
-    headers: {
-      "0x-api-key": process.env.ZEROEX_API_KEY,
-    },
+    headers: process.env.ZEROEX_API_KEY
+      ? {
+          "0x-api-key": process.env.ZEROEX_API_KEY,
+        }
+      : {},
   });
   switch (response.status) {
     case 200:

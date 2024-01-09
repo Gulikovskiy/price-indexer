@@ -1,15 +1,17 @@
 import { ZodIssue } from "zod";
 
-export enum ErrorType {
-  InvalidSearchParams = 10001,
-  InvalidSymbol = 10002,
-  InvalidCoingeckoResponse = 10003,
-  InvalidResponseTypes = 10004,
-  InternalServerError = 10005,
-}
+export const ErrorType = {
+  InvalidSearchParams: 10001,
+  InvalidSymbol: 10002,
+  InvalidCoingeckoResponse: 10003,
+  InvalidResponseTypes: 10004,
+  InternalServerError: 10005,
+} as const;
+
+type ValueOf<T> = T[keyof T];
 
 export type ErrorResponse = {
-  code: ErrorType;
+  code: ValueOf<typeof ErrorType>;
   message?: string;
 };
 
@@ -22,7 +24,7 @@ export class KeyError extends ReferenceError {
 }
 
 export const zodErrorResponse = (
-  code: ErrorType,
+  code: ValueOf<typeof ErrorType>,
   issue: ZodIssue
 ): ErrorResponse => ({
   message: `${issue.path} param ${issue.message.toLowerCase()}`,
@@ -36,11 +38,9 @@ export const invalidSymbolErrorResponse = (message: string) => {
   };
 };
 
-export const coingeckoAPIErrorResponse = (res: Response) => {
-  return {
-    code: ErrorType.InvalidCoingeckoResponse,
-    message: `Coingecko API failed. ${res.statusText}`,
-  };
+export const coingeckoAPIErrorResponse = {
+  code: ErrorType.InvalidCoingeckoResponse,
+  message: "Coingecko API failed.",
 };
 
 export const invalidResponseTypesError = {
