@@ -1,11 +1,10 @@
 import { kv } from "@vercel/kv";
 import moment from "moment";
-import { userKey } from "./constants";
+import { cacheKey, scraperURL } from "./constants";
 import { coingeckoAPIErrorResponse, invalidResponseTypesError } from "./errors";
 import { PriceDataResponse } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
-  CoingeckoResponse,
   getCoingeckoRangeURL,
   getDayId,
   getTimestampFromDayId,
@@ -15,11 +14,10 @@ import {
 
 const fetchData = async (symbol: string, start: number, finish: number) => {
   const id = coinList[symbol];
-  const url = getCoingeckoRangeURL(id, start, finish);
+  const encodedUrl = getCoingeckoRangeURL(id, start, finish);
+
   const res = await fetch(
-    `https://api.scraperapi.com/?api_key=${
-      process.env.SCRAPER_API_KEY
-    }&url=${encodeURIComponent(url)}`
+    `${scraperURL}/?api_key=${process.env.SCRAPER_API_KEY}&url=${encodedUrl}`
   );
 
   if (res.status !== 200) {
@@ -27,14 +25,7 @@ const fetchData = async (symbol: string, start: number, finish: number) => {
   }
   const rawResponse = await res.json();
 
-  const parsed = CoingeckoResponse.safeParse(rawResponse);
-
-  if (parsed.success === false) {
-    console.error(parsed.error.issues);
-    throw invalidResponseTypesError;
-  }
-
-  return parsePriceResponse(parsed.data.prices);
+  return parsePriceResponse(rawResponse);
 };
 
 export const fetchCoingeckoPrices = async (
@@ -64,8 +55,8 @@ export const fetchCoingeckoPrices = async (
 
   const data: PriceDataResponse = {};
 
-  const stored: Record<string, [id: number, price: number][]> =
-    await kv.hgetall(userKey);
+  const stored: Record<string, [id: number, price: number][]> | null =
+    await kv.hgetall(cacheKey);
 
   const dayStartId = getDayId(startTimestamp);
   const dayFinishId = getDayId(finishTimestamp);
@@ -81,13 +72,12 @@ export const fetchCoingeckoPrices = async (
           finishTimestamp
         );
         data[symbol] = KVDataToPrice.parse(response);
-        kv.hset(userKey, { [symbol]: response });
+        await kv.hset(cacheKey, { [symbol]: response });
 
         return;
       }
 
       const [lastStoredId] = storedAssetData[storedAssetData.length - 1];
-
       if (lastStoredId < dayFinishId) {
         const lastStoredTimestamp = getTimestampFromDayId(lastStoredId);
         const prices = await fetchData(
@@ -102,17 +92,15 @@ export const fetchCoingeckoPrices = async (
           ...storedAssetData.slice(0, -1),
           ...prices,
         ];
-        kv.hset(userKey, { [symbol]: updatedKVStorageData });
 
-        data[symbol] = KVDataToPrice.parse([
-          ...storedAssetData.slice(0, -1),
-          ...prices,
-        ]);
+        data[symbol] = KVDataToPrice.parse(updatedKVStorageData);
+        await kv.hset(cacheKey, { [symbol]: updatedKVStorageData });
+        return;
       }
 
       if (lastStoredId >= dayFinishId) {
         data[symbol] = KVDataToPrice.parse(
-          storedAssetData.slice(dayStartId, dayFinishId + 1)
+          storedAssetData.slice(dayStartId, dayFinishId)
         );
         return;
       }

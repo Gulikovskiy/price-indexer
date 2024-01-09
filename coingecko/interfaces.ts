@@ -1,8 +1,3 @@
-export type PriceRawResponse = {
-  timestamp: number;
-  price: number;
-}[];
-
 export type Price = {
   id: number;
   timestamp: number;
@@ -10,3 +5,8 @@ export type Price = {
 };
 
 export type PriceDataResponse = { [symbol: string]: Price[] | null };
+
+export type DefaultError = {
+  code: number;
+  message: string;
+};
