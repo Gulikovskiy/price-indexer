@@ -68,6 +68,7 @@ export const coinList: { [key: string]: string } = {
   //CAI(active)
   JOE: "joe",
   SAVAX: "benqi-liquid-staked-avax",
+  XAVA: "avalaunch",
   //CAI(inactive)
   QI: "benqi",
   //test
