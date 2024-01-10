@@ -1,6 +1,6 @@
 export const coinList: { [key: string]: string } = {
   //PRODUCTS
-  CAI: "colony-avalanche-index",
+  // CAI: "colony-avalanche-index",
 
   //BLOCKCHAINS & CHAINS & FAMOUS
   BTC: "bitcoin",
@@ -74,6 +74,8 @@ export const coinList: { [key: string]: string } = {
   LEO: "leo-token",
   ETC: "ethereum-classic",
   BCH: "bitcoin-cash",
+  VET: "vechain",
+  AXS: "axie-infinity",
 } as const;
 
 export type TokenId = (typeof coinList)[keyof typeof coinList];
