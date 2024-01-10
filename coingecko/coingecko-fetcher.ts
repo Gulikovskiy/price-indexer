@@ -108,7 +108,8 @@ export const fetchCoingeckoPrices = async (
 
       if (lastStoredId >= dayFinishId) {
         data[symbol] = KVDataToPrice.parse(
-          storedAssetData.slice(dayStartId, dayFinishId)
+          storedAssetData.slice(dayStartId, dayFinishId + 1)
+          //INFO: lastID + 1, because slice is working with arr length
         );
         return;
       }
