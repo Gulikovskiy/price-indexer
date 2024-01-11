@@ -27,7 +27,6 @@ export const coinList: { [key: string]: string } = {
   //MEME COINS
   DOGE: "dogecoin",
   SHIB: "shiba-inu",
-  BONK: "bonk",
 
   //STABLES
   USDC: "usd-coin",

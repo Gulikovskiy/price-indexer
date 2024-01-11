@@ -86,13 +86,21 @@ export const fetchCoingeckoPrices = async (
       }
 
       const [lastStoredId] = storedAssetData[storedAssetData.length - 1];
+
+      const freshAsset = storedAssetData.length - 1 < dayFinishId;
+
+      const startOffset = freshAsset
+        ? storedAssetData.length - 1 - (lastStoredId - dayStartId)
+        : dayStartId;
+      const finishOffset = startOffset + days;
+
       if (lastStoredId < dayFinishId) {
         const lastStoredTimestamp = getTimestampFromDayId(lastStoredId);
         const prices = await fetchData(
           symbol,
           moment(lastStoredTimestamp).unix(),
           moment(finishTimestamp * 1000)
-            .add(5, "minute")
+            .add(10, "minute")
             .unix()
         );
 
@@ -101,15 +109,16 @@ export const fetchCoingeckoPrices = async (
           ...prices,
         ];
 
-        data[symbol] = KVDataToPrice.parse(updatedKVStorageData);
+        data[symbol] = KVDataToPrice.parse(
+          updatedKVStorageData.slice(startOffset, finishOffset)
+        );
         await kv.hset(cacheKey, { [symbol]: updatedKVStorageData });
         return;
       }
 
       if (lastStoredId >= dayFinishId) {
         data[symbol] = KVDataToPrice.parse(
-          storedAssetData.slice(dayStartId, dayFinishId + 1)
-          //INFO: lastID + 1, because slice is working with arr length
+          storedAssetData.slice(startOffset, finishOffset)
         );
         return;
       }
