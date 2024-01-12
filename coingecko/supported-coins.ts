@@ -1,7 +1,4 @@
 export const coinList: { [key: string]: string } = {
-  //PRODUCTS
-  CAI: "colony-avalanche-index",
-
   //BLOCKCHAINS & CHAINS & FAMOUS
   BTC: "bitcoin",
   ETH: "ethereum",
@@ -71,9 +68,6 @@ export const coinList: { [key: string]: string } = {
   //CAI(inactive)
   QI: "benqi",
   //test
-  LEO: "leo-token",
-  ETC: "ethereum-classic",
-  BCH: "bitcoin-cash",
   VET: "vechain",
   AXS: "axie-infinity",
 } as const;

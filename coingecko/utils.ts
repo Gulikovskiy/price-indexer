@@ -12,6 +12,8 @@ import { Price } from "./interfaces";
 const apiKey = process.env.CG_DEMO_API_KEY;
 if (!apiKey) throw new KeyError();
 
+export const isType = <T>(thing: any): thing is T => true;
+
 export const getDayId = (timestamp: number) =>
   (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
 

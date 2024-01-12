@@ -1,7 +1,12 @@
 import { kv } from "@vercel/kv";
 import moment from "moment";
 import { cacheKey, scraperURL } from "./constants";
-import { coingeckoAPIErrorResponse, invalidResponseTypesError } from "./errors";
+import {
+  ErrorResponse,
+  coingeckoAPIErrorResponse,
+  invalidResponseTypesError,
+  timestampRangeError,
+} from "./errors";
 import { PriceDataResponse } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
@@ -39,7 +44,7 @@ export const fetchCoingeckoPrices = async (
   assets: string[],
   start: number,
   days: number
-): Promise<PriceDataResponse> => {
+): Promise<PriceDataResponse | ErrorResponse> => {
   const startTimestamp = moment(start * 1000)
     .utc()
     .startOf("day")
@@ -67,6 +72,20 @@ export const fetchCoingeckoPrices = async (
 
   const dayStartId = getDayId(startTimestamp);
   const dayFinishId = getDayId(finishTimestamp);
+  const invalidSymbols: string[] = [];
+
+  assets.map((symbol) => {
+    const endpointStartId =
+      stored !== null && stored[symbol] !== null ? stored[symbol][0][0] : 0; //INFO first ID from stored data
+
+    if (endpointStartId > dayStartId) {
+      invalidSymbols.push(symbol);
+    }
+  });
+
+  if (invalidSymbols.length !== 0) {
+    return timestampRangeError(invalidSymbols);
+  }
 
   await Promise.all(
     assets.map(async (symbol) => {
@@ -110,7 +129,7 @@ export const fetchCoingeckoPrices = async (
         ];
 
         data[symbol] = KVDataToPrice.parse(
-          updatedKVStorageData.slice(startOffset, finishOffset)
+          updatedKVStorageData.slice(Math.max(0, startOffset), finishOffset)
         );
         await kv.hset(cacheKey, { [symbol]: updatedKVStorageData });
         return;
@@ -118,7 +137,7 @@ export const fetchCoingeckoPrices = async (
 
       if (lastStoredId >= dayFinishId) {
         data[symbol] = KVDataToPrice.parse(
-          storedAssetData.slice(startOffset, finishOffset)
+          storedAssetData.slice(Math.max(0, startOffset), finishOffset)
         );
         return;
       }

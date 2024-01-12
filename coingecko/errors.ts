@@ -3,9 +3,12 @@ import { ZodIssue } from "zod";
 export const ErrorType = {
   InvalidSearchParams: 10001,
   InvalidSymbol: 10002,
-  InvalidCoingeckoResponse: 10003,
-  InvalidResponseTypes: 10004,
-  InternalServerError: 10005,
+  InvalidAssetsAmount: 10003,
+  InvalidDaysAmount: 10004,
+  InvalidTimestampRange: 10005,
+  InvalidCoingeckoResponse: 10006,
+  InvalidResponseTypes: 10007,
+  InternalServerError: 10008,
 } as const;
 
 type ValueOf<T> = T[keyof T];
@@ -37,6 +40,21 @@ export const invalidSymbolErrorResponse = (message: string) => {
     message,
   };
 };
+
+export const assetAmountExcessError = {
+  code: ErrorType.InvalidAssetsAmount,
+  message: "Invalid assets amount",
+};
+
+export const daysAmountExcessError = {
+  code: ErrorType.InvalidDaysAmount,
+  message: "Invalid range",
+};
+
+export const timestampRangeError = (symbols: string[]) => ({
+  code: ErrorType.InvalidTimestampRange,
+  message: `Invalid timestamp range for ${symbols.join(", ")} assets`,
+});
 
 export const coingeckoAPIErrorResponse = {
   code: ErrorType.InvalidCoingeckoResponse,

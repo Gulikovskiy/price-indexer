@@ -2,10 +2,16 @@ import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next/types";
 import { z } from "zod";
 import { fetchCoingeckoPrices } from "../../../../../coingecko/coingecko-fetcher";
-import { productStartInSeconds } from "../../../../../coingecko/constants";
+import {
+  maxAssetsAmount,
+  maxRange,
+  productStartInSeconds,
+} from "../../../../../coingecko/constants";
 import {
   ErrorResponse,
   ErrorType,
+  assetAmountExcessError,
+  daysAmountExcessError,
   invalidSymbolErrorResponse,
   serverError,
   zodErrorResponse,
@@ -15,6 +21,7 @@ import {
   PriceDataResponse,
 } from "../../../../../coingecko/interfaces";
 import { coinList } from "../../../../../coingecko/supported-coins";
+import { isType } from "../../../../../coingecko/utils";
 
 const SearchParams = z.object({
   timestamp: z.coerce
@@ -70,11 +77,21 @@ const handler = async (
     const errorMessage = validatedCoins.error.issues[0].message;
     return res.status(400).json(invalidSymbolErrorResponse(errorMessage));
   }
+  if (coins.length > maxAssetsAmount) {
+    return res.status(400).json(assetAmountExcessError);
+  }
+
+  if (days > maxRange) {
+    return res.status(400).json(daysAmountExcessError);
+  }
 
   try {
     const historical = await fetchCoingeckoPrices(coins, timestamp, days);
-
-    return res.status(200).json({ historical });
+    if (isType<ErrorResponse>(historical)) {
+      return res.status(400).json(historical);
+    } else {
+      return res.status(200).json({ historical });
+    }
   } catch (err) {
     const error = err as DefaultError;
     return res.status(error.code ?? 500).json(serverError(error.message));
