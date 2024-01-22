@@ -53,7 +53,7 @@ const ValidateCoinList = z
   });
 
 const handler = async (
-  req: NextApiRequest, //& NextApiResponse<{ historical: PriceDataResponse }>
+  req: NextApiRequest,
   res: NextApiResponse<{ historical: PriceDataResponse } | ErrorResponse>
 ) => {
   const { coins: rawCoins, timestamp: rawTimestamp, days: rawDays } = req.query;

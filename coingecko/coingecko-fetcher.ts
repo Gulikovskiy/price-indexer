@@ -100,6 +100,7 @@ export const fetchCoingeckoPrices = async (
         );
         data[symbol] = KVDataToPrice.parse(response);
         await kv.hset(cacheKey, { [symbol]: response });
+        console.log(`Requested data(${symbol}): ${response}`);
 
         return;
       }
@@ -132,6 +133,8 @@ export const fetchCoingeckoPrices = async (
           updatedKVStorageData.slice(Math.max(0, startOffset), finishOffset)
         );
         await kv.hset(cacheKey, { [symbol]: updatedKVStorageData });
+        console.log(`Data from cache(${symbol}): ${storedAssetData}`);
+        console.log(`Requested data(${symbol}): ${prices}`);
         return;
       }
 
@@ -139,6 +142,7 @@ export const fetchCoingeckoPrices = async (
         data[symbol] = KVDataToPrice.parse(
           storedAssetData.slice(Math.max(0, startOffset), finishOffset)
         );
+        console.log(`Data from cache(${symbol}): ${storedAssetData}`);
         return;
       }
     })
