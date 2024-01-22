@@ -15,7 +15,9 @@ class ForwardedError extends Error {
 }
 
 export const fetchPriceFrom0x = async (chainId: number, endpoint: string) => {
+  console.log("chainId: ", chainId);
   const prefix = endpointPrefixes[chainId];
+  console.log("prefix: ", prefix);
   if (prefix === undefined) {
     throw new ForwardedError("Unsupported chainId", 400);
   }

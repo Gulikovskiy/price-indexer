@@ -5,6 +5,7 @@ import { createErrorResponse, createJsonResponse } from "./response";
 export default function forward(route: string) {
   return async (req: NextRequest) => {
     const searchParams = new URL(req.url).searchParams;
+    console.log("searchParams: ", searchParams);
 
     const chainId = Number(searchParams.get("nextParamchainId"));
     const endpoint = `${route}?${searchParams.toString()}`;

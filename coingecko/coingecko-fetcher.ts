@@ -98,9 +98,13 @@ export const fetchCoingeckoPrices = async (
           startTimestamp,
           finishTimestamp
         );
+        console.info(
+          `Requested data(${symbol}): ${response[0][0]}-${response[0][1]}...${
+            response[response.length - 1][0]
+          }-${response[response.length - 1][1]}`
+        );
         data[symbol] = KVDataToPrice.parse(response);
         await kv.hset(cacheKey, { [symbol]: response });
-        console.log(`Requested data(${symbol}): ${response}`);
 
         return;
       }
@@ -128,21 +132,39 @@ export const fetchCoingeckoPrices = async (
           ...storedAssetData.slice(0, -1),
           ...prices,
         ];
+        console.info(
+          `Data from cache(${symbol}): ${storedAssetData[0][0]}-${
+            storedAssetData[0][1]
+          }...${storedAssetData[storedAssetData.length - 1][0]}-${
+            storedAssetData[storedAssetData.length - 1][1]
+          }`
+        );
+
+        console.info(`Requested data(${symbol}): 
+        ${prices[0][0]}-${prices[0][1]}...${prices[prices.length - 1][0]}-${
+          prices[prices.length - 1][1]
+        }
+        `);
 
         data[symbol] = KVDataToPrice.parse(
           updatedKVStorageData.slice(Math.max(0, startOffset), finishOffset)
         );
         await kv.hset(cacheKey, { [symbol]: updatedKVStorageData });
-        console.log(`Data from cache(${symbol}): ${storedAssetData}`);
-        console.log(`Requested data(${symbol}): ${prices}`);
+
         return;
       }
 
       if (lastStoredId >= dayFinishId) {
+        console.info(
+          `Data from cache(${symbol}): ${storedAssetData[0][0]}-${
+            storedAssetData[0][1]
+          }...${storedAssetData[storedAssetData.length - 1][0]}-${
+            storedAssetData[storedAssetData.length - 1][1]
+          }`
+        );
         data[symbol] = KVDataToPrice.parse(
           storedAssetData.slice(Math.max(0, startOffset), finishOffset)
         );
-        console.log(`Data from cache(${symbol}): ${storedAssetData}`);
         return;
       }
     })
