@@ -7,7 +7,7 @@ import {
   invalidResponseTypesError,
   timestampRangeError,
 } from "./errors";
-import { PriceDataResponse } from "./interfaces";
+import { PriceDataResponse, RangeMap } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
   CoingeckoResponse,
@@ -43,7 +43,8 @@ const fetchData = async (symbol: string, start: number, finish: number) => {
 export const fetchCoingeckoPrices = async (
   assets: string[],
   start: number,
-  days: number
+  days: number,
+  batches: RangeMap
 ): Promise<PriceDataResponse | ErrorResponse> => {
   const startTimestamp = moment(start * 1000)
     .utc()
@@ -73,6 +74,29 @@ export const fetchCoingeckoPrices = async (
   const dayStartId = getDayId(startTimestamp);
   const dayFinishId = getDayId(finishTimestamp);
   const invalidSymbols: string[] = [];
+
+  const testAssets = Object.keys(batches);
+  console.log("testAssets: ", testAssets);
+  let result: any[][] = [];
+  for (const symbol of testAssets) {
+    const assetBatches = batches[symbol];
+    console.log("SYMBOL: , ", symbol);
+    const storedAssetData = stored ? stored[symbol] || null : null;
+    for (let i = 0; i < assetBatches.length; i++) {
+      const singleBatch = assetBatches[i];
+      // console.log("singleBatch.end: ", singleBatch.end);
+      const startDayId = getDayId(singleBatch.start);
+      const endDayId = getDayId(singleBatch.end);
+      if (storedAssetData !== null) {
+        // console.log("startDayId: ", startDayId, "endDayId: ", endDayId);
+        const data = storedAssetData.slice(Math.max(0, startDayId), endDayId);
+        // result[symbol].push(data);
+        console.log("data: ", data);
+      }
+    }
+  }
+  console.log("result: ", result);
+  // testAssets.map((symbol) => batches[symbol]);
 
   assets.map((symbol) => {
     const endpointStartId =

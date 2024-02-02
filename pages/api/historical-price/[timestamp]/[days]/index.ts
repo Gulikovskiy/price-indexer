@@ -19,9 +19,11 @@ import {
 import {
   DefaultError,
   PriceDataResponse,
+  RangeMap,
 } from "../../../../../coingecko/interfaces";
 import { coinList } from "../../../../../coingecko/supported-coins";
-import { isType } from "../../../../../coingecko/utils";
+import { NextRequest } from "next/server";
+import { createJsonResponse } from "../../../../../forward/response";
 
 const SearchParams = z.object({
   timestamp: z.coerce
@@ -53,9 +55,24 @@ const ValidateCoinList = z
   });
 
 const handler = async (
+  // req: NextRequest,
   req: NextApiRequest,
-  res: NextApiResponse<{ historical: PriceDataResponse } | ErrorResponse>
+  res: NextApiResponse<PriceDataResponse | ErrorResponse>
 ) => {
+  // console.log("some: ", req.);
+  // const url = new URL(req.url);
+  // const searchParams = url.searchParams;
+  // const rawTimestamp = searchParams.get("timestamp");
+  // const rawDays = searchParams.get("days");
+  // console.log("rawTimestamp: ", rawTimestamp, "rawDays: ", rawDays);
+  // console.log("url: ", url.search);
+
+  // const rawCoins = searchParams.get("");
+  // const chainId = Number(searchParams.get("chainId"));
+  // const endpoint = `${route}?${searchParams.toString()}`;
+
+  const test = req.body as RangeMap;
+
   const { coins: rawCoins, timestamp: rawTimestamp, days: rawDays } = req.query;
   const parsed = SearchParams.safeParse({
     timestamp: rawTimestamp,
@@ -86,13 +103,10 @@ const handler = async (
   }
 
   try {
-    const historical = await fetchCoingeckoPrices(coins, timestamp, days);
-    if (isType<ErrorResponse>(historical)) {
-      return res.status(400).json(historical);
-    } else {
-      return res.status(200).json({ historical });
-    }
+    const historical = await fetchCoingeckoPrices(coins, timestamp, days, test);
+    return res.status(200).json(historical);
   } catch (err) {
+    console.error(err);
     const error = err as DefaultError;
     return res.status(error.code ?? 500).json(serverError(error.message));
   }
