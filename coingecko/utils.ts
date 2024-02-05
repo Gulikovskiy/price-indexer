@@ -7,7 +7,7 @@ import {
   productStartInMilliseconds,
 } from "./constants";
 import { KeyError } from "./errors";
-import { Price as BatchPrice } from "./batches/batch-fetcher";
+import { Price as BatchPrice } from "./batch-fetcher";
 import { Price } from "./interfaces";
 
 const apiKey = process.env.CG_DEMO_API_KEY;
