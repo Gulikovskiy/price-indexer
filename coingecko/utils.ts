@@ -7,6 +7,7 @@ import {
   productStartInMilliseconds,
 } from "./constants";
 import { KeyError } from "./errors";
+import { Price as BatchPrice } from "./batch-fetcher";
 import { Price } from "./interfaces";
 
 const apiKey = process.env.CG_DEMO_API_KEY;
@@ -15,7 +16,13 @@ if (!apiKey) throw new KeyError();
 export const isType = <T>(thing: any): thing is T => true;
 
 export const getDayId = (timestamp: number) =>
-  (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
+  (moment(timestamp * 1000)
+    .utc()
+    .startOf("day")
+    .unix() *
+    1000 -
+    productStartInMilliseconds) /
+  millisecondsInDay;
 
 export const getTimestampFromDayId = (id: number) =>
   id * millisecondsInDay + productStartInMilliseconds;
@@ -35,6 +42,20 @@ export const KVDataToPrice = z
       timestamps.push(getTimestampFromDayId(id));
     }
     return { prices, timestamps } as Price;
+  });
+
+export const KVDataToPriceArray = z
+  .array(z.tuple([z.number().int(), z.number().positive()]))
+  .transform((pricesArray) => {
+    let array: BatchPrice[] = [];
+
+    for (const [id, price] of pricesArray) {
+      array.push({
+        price: price.toFixed(8),
+        timestamp: getTimestampFromDayId(id),
+      });
+    }
+    return array;
   });
 
 export const CoingeckoResponse = z.object({

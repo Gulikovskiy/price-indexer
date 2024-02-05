@@ -6,3 +6,10 @@ export type DefaultError = {
   code: number;
   message: string;
 };
+
+export type Range = {
+  start: number;
+  end: number;
+};
+
+export type RangeMap = { [asset: string]: Range[] };

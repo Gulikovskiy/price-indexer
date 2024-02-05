@@ -4,11 +4,12 @@ export const ErrorType = {
   InvalidSearchParams: 10001,
   InvalidSymbol: 10002,
   InvalidAssetsAmount: 10003,
-  InvalidDaysAmount: 10004,
-  InvalidTimestampRange: 10005,
-  InvalidCoingeckoResponse: 10006,
-  InvalidResponseTypes: 10007,
-  InternalServerError: 10008,
+  InvalidBatchesAmount: 10004,
+  InvalidDaysAmount: 10005,
+  InvalidTimestampRange: 10006,
+  InvalidCoingeckoResponse: 10007,
+  InvalidResponseTypes: 10008,
+  InternalServerError: 10009,
 } as const;
 
 type ValueOf<T> = T[keyof T];
@@ -40,6 +41,13 @@ export const invalidSymbolErrorResponse = (message: string) => {
     message,
   };
 };
+
+export const batchesAmountExcessError = (assets: string[]) => ({
+  code: ErrorType.InvalidBatchesAmount,
+  message: `Invalid batches amount for [ ${assets.join(", ")} ] ${
+    assets.length > 1 ? "assets" : "asset"
+  }`,
+});
 
 export const assetAmountExcessError = {
   code: ErrorType.InvalidAssetsAmount,

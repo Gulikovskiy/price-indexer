@@ -7,7 +7,7 @@ import {
   invalidResponseTypesError,
   timestampRangeError,
 } from "./errors";
-import { PriceDataResponse } from "./interfaces";
+import { PriceDataResponse, RangeMap } from "./interfaces";
 import { coinList } from "./supported-coins";
 import {
   CoingeckoResponse,
