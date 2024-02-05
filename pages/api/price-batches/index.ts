@@ -1,11 +1,7 @@
-import moment from "moment";
 import { NextApiRequest, NextApiResponse } from "next/types";
 import { z } from "zod";
-import {
-  DefaultError,
-  PriceDataResponse,
-  RangeMap,
-} from "../../../coingecko/interfaces";
+import { PriceRequest, fetchBatches } from "../../../coingecko/batch-fetcher";
+import { maxAssetsAmount } from "../../../coingecko/constants";
 import {
   ErrorResponse,
   ErrorType,
@@ -14,11 +10,7 @@ import {
   serverError,
   zodErrorResponse,
 } from "../../../coingecko/errors";
-import {
-  PriceRequest,
-  fetchBatches,
-} from "../../../coingecko/batches/batch-fetcher";
-import { maxAssetsAmount } from "../../../coingecko/constants";
+import { DefaultError, RangeMap } from "../../../coingecko/interfaces";
 import { coinList } from "../../../coingecko/supported-coins";
 
 const ParamsValidation = z.object({
@@ -55,6 +47,7 @@ const handler = async (
   req: NextApiRequest,
   res: NextApiResponse<PriceRequest | ErrorResponse>
 ) => {
+  // console.log("test: ", req);
   const data = req.body as RangeMap;
   console.log("BATCHES: ", data);
 

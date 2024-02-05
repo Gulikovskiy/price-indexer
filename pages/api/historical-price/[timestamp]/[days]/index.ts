@@ -6,11 +6,13 @@ import {
   maxAssetsAmount,
   maxRange,
   productStartInSeconds,
+  maxBatchNumber,
 } from "../../../../../coingecko/constants";
 import {
   ErrorResponse,
   ErrorType,
   assetAmountExcessError,
+  batchesAmountExcessError,
   daysAmountExcessError,
   invalidSymbolErrorResponse,
   serverError,
@@ -22,8 +24,10 @@ import {
   RangeMap,
 } from "../../../../../coingecko/interfaces";
 import { coinList } from "../../../../../coingecko/supported-coins";
-import { NextRequest } from "next/server";
-import { createJsonResponse } from "../../../../../forward/response";
+import {
+  PriceRequest,
+  fetchBatches,
+} from "../../../../../coingecko/batch-fetcher";
 
 const SearchParams = z.object({
   timestamp: z.coerce
@@ -54,61 +58,94 @@ const ValidateCoinList = z
     });
   });
 
+const ValidateBatchesList = z.number().superRefine((batchesAmount, ctx) => {
+  if (batchesAmount > maxBatchNumber) {
+    return ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Too many batches",
+    });
+  }
+});
+
 const handler = async (
-  // req: NextRequest,
   req: NextApiRequest,
-  res: NextApiResponse<PriceDataResponse | ErrorResponse>
+  res: NextApiResponse<PriceDataResponse | PriceRequest | ErrorResponse>
 ) => {
-  // console.log("some: ", req.);
-  // const url = new URL(req.url);
-  // const searchParams = url.searchParams;
-  // const rawTimestamp = searchParams.get("timestamp");
-  // const rawDays = searchParams.get("days");
-  // console.log("rawTimestamp: ", rawTimestamp, "rawDays: ", rawDays);
-  // console.log("url: ", url.search);
+  const data = req.body as RangeMap;
 
-  // const rawCoins = searchParams.get("");
-  // const chainId = Number(searchParams.get("chainId"));
-  // const endpoint = `${route}?${searchParams.toString()}`;
+  const coins = Object.keys(data);
+  if (coins.length !== 0) {
+    const validatedCoins = ValidateCoinList.safeParse(coins);
 
-  const test = req.body as RangeMap;
+    if (!validatedCoins.success) {
+      const errorMessage = validatedCoins.error.issues[0].message;
+      return res.status(400).json(invalidSymbolErrorResponse(errorMessage));
+    }
 
-  const { coins: rawCoins, timestamp: rawTimestamp, days: rawDays } = req.query;
-  const parsed = SearchParams.safeParse({
-    timestamp: rawTimestamp,
-    days: rawDays,
-    coins: rawCoins,
-  });
-  if (!parsed.success) {
-    const mes = parsed.error.issues[0];
-    return res
-      .status(400)
-      .json(zodErrorResponse(ErrorType.InvalidSearchParams, mes));
-  }
+    const errorBatches = coins.filter((symbol) => {
+      const status = ValidateBatchesList.safeParse(data[symbol].length);
+      if (!status.success) {
+        return symbol;
+      }
+    });
+    if (errorBatches.length !== 0) {
+      return res.status(400).json(batchesAmountExcessError(errorBatches));
+    }
 
-  const { coins, days, timestamp } = parsed.data;
+    if (coins.length > maxAssetsAmount) {
+      return res.status(400).json(assetAmountExcessError);
+    }
 
-  const validatedCoins = ValidateCoinList.safeParse(coins);
+    try {
+      const historical = await fetchBatches(data);
+      return res.status(200).json(historical);
+    } catch (err) {
+      console.error(err);
+      const error = err as DefaultError;
+      return res.status(error.code ?? 500).json(serverError(error.message));
+    }
+  } else {
+    const {
+      coins: rawCoins,
+      timestamp: rawTimestamp,
+      days: rawDays,
+    } = req.query;
+    const parsed = SearchParams.safeParse({
+      timestamp: rawTimestamp,
+      days: rawDays,
+      coins: rawCoins,
+    });
+    if (!parsed.success) {
+      const mes = parsed.error.issues[0];
+      return res
+        .status(400)
+        .json(zodErrorResponse(ErrorType.InvalidSearchParams, mes));
+    }
 
-  if (!validatedCoins.success) {
-    const errorMessage = validatedCoins.error.issues[0].message;
-    return res.status(400).json(invalidSymbolErrorResponse(errorMessage));
-  }
-  if (coins.length > maxAssetsAmount) {
-    return res.status(400).json(assetAmountExcessError);
-  }
+    const { coins, days, timestamp } = parsed.data;
 
-  if (days > maxRange) {
-    return res.status(400).json(daysAmountExcessError);
-  }
+    const validatedCoins = ValidateCoinList.safeParse(coins);
 
-  try {
-    const historical = await fetchCoingeckoPrices(coins, timestamp, days, test);
-    return res.status(200).json(historical);
-  } catch (err) {
-    console.error(err);
-    const error = err as DefaultError;
-    return res.status(error.code ?? 500).json(serverError(error.message));
+    if (!validatedCoins.success) {
+      const errorMessage = validatedCoins.error.issues[0].message;
+      return res.status(400).json(invalidSymbolErrorResponse(errorMessage));
+    }
+    if (coins.length > maxAssetsAmount) {
+      return res.status(400).json(assetAmountExcessError);
+    }
+
+    if (days > maxRange) {
+      return res.status(400).json(daysAmountExcessError);
+    }
+
+    try {
+      const historical = await fetchCoingeckoPrices(coins, timestamp, days);
+      return res.status(200).json(historical);
+    } catch (err) {
+      console.error(err);
+      const error = err as DefaultError;
+      return res.status(error.code ?? 500).json(serverError(error.message));
+    }
   }
 };
 export default handler;
