@@ -1,5 +1,12 @@
 import { kv } from "@vercel/kv";
-import { cacheKey } from "../coingecko/constants";
+import {
+  cacheKey,
+  precision,
+  maxAssetsAmount,
+  maxRange,
+  maxBatchNumber,
+  millisecondsInDay,
+} from "../coingecko/constants";
 import { coinList } from "../coingecko/supported-coins";
 import { getTimestampFromDayId } from "../coingecko/utils";
 
@@ -18,3 +25,11 @@ export const getEndpoints = async () => {
   });
   return endpoints;
 };
+
+export const getServerConfig = () => ({
+  assetPrecision: precision,
+  maxAssetsAmount,
+  maxRange,
+  maxBatchNumber,
+  granularity: millisecondsInDay / 1000,
+});
