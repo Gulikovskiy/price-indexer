@@ -21,6 +21,7 @@ import {
 import {
   DefaultError,
   PriceDataResponse,
+  Range,
   RangeMap,
 } from "../../../../../coingecko/interfaces";
 import { coinList } from "../../../../../coingecko/supported-coins";
@@ -58,7 +59,10 @@ const ValidateCoinList = z
     });
   });
 
-const ValidateBatchesList = z.number().max(maxBatchNumber);
+const ValidateBatchesList = z
+  .array(z.object({ start: z.number(), end: z.number() }))
+  .nonempty()
+  .max(maxBatchNumber);
 
 const handler = async (
   req: NextApiRequest,
@@ -76,7 +80,7 @@ const handler = async (
     }
 
     const errorBatches = coins.filter((symbol) => {
-      const status = ValidateBatchesList.safeParse(data[symbol].length);
+      const status = ValidateBatchesList.safeParse(data[symbol]);
       if (!status.success) {
         return symbol;
       }

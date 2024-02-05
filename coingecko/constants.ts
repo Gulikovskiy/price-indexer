@@ -8,7 +8,7 @@ export const refreshInterval = 5; //minutes
 export const precision = 8;
 export const maxAssetsAmount = 20;
 export const maxRange = 60;
-export const maxBatchNumber = 2;
+export const maxBatchNumber = 10;
 
 export const cacheKey = "cacheData";
 export const coingeckoURL = "https://api.coingecko.com/api/v3";
