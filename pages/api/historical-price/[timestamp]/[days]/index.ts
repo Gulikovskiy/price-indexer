@@ -58,14 +58,7 @@ const ValidateCoinList = z
     });
   });
 
-const ValidateBatchesList = z.number().superRefine((batchesAmount, ctx) => {
-  if (batchesAmount > maxBatchNumber) {
-    return ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Too many batches",
-    });
-  }
-});
+const ValidateBatchesList = z.number().max(maxBatchNumber);
 
 const handler = async (
   req: NextApiRequest,
