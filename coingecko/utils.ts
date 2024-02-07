@@ -52,7 +52,7 @@ export const KVDataToPriceArray = z
     for (const [id, price] of pricesArray) {
       array.push({
         price: price.toFixed(8),
-        timestamp: getTimestampFromDayId(id),
+        timestamp: getTimestampFromDayId(id) / 1000,
       });
     }
     return array;
