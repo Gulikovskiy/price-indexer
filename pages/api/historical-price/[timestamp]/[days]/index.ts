@@ -7,12 +7,14 @@ import {
   maxRange,
   productStartInSeconds,
   maxBatchNumber,
+  secondsInDay,
 } from "../../../../../coingecko/constants";
 import {
   ErrorResponse,
   ErrorType,
   assetAmountExcessError,
   batchesAmountExcessError,
+  batchesRangeExcessError,
   daysAmountExcessError,
   invalidSymbolErrorResponse,
   serverError,
@@ -64,6 +66,19 @@ const ValidateBatchesList = z
   .nonempty()
   .max(maxBatchNumber);
 
+const ValidateBatchesRange = z
+  .array(z.object({ start: z.number(), end: z.number() }))
+  .superRefine((batches, ctx) => {
+    batches.map((batch, i) => {
+      if (batch.end - batch.start > secondsInDay * maxRange) {
+        return ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Range is incorrect`,
+        });
+      }
+    });
+  });
+
 const handler = async (
   req: NextApiRequest,
   res: NextApiResponse<PriceDataResponse | PriceRequest | ErrorResponse>
@@ -79,14 +94,25 @@ const handler = async (
       return res.status(400).json(invalidSymbolErrorResponse(errorMessage));
     }
 
-    const errorBatches = coins.filter((symbol) => {
-      const status = ValidateBatchesList.safeParse(data[symbol]);
-      if (!status.success) {
+    const errorBatchesAmount = coins.filter((symbol) => {
+      const batchNumberStatus = ValidateBatchesList.safeParse(data[symbol]);
+      if (!batchNumberStatus.success) {
         return symbol;
       }
     });
-    if (errorBatches.length !== 0) {
-      return res.status(400).json(batchesAmountExcessError(errorBatches));
+    if (errorBatchesAmount.length !== 0) {
+      return res.status(400).json(batchesAmountExcessError(errorBatchesAmount));
+    }
+
+    const errorBatchesRange = coins.filter((symbol) => {
+      const batchRangeStatus = ValidateBatchesRange.safeParse(data[symbol]);
+      if (!batchRangeStatus.success) {
+        return symbol;
+      }
+    });
+
+    if (errorBatchesRange.length !== 0) {
+      return res.status(400).json(batchesRangeExcessError(errorBatchesRange));
     }
 
     if (coins.length > maxAssetsAmount) {
