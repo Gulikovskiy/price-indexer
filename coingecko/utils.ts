@@ -16,13 +16,7 @@ if (!apiKey) throw new KeyError();
 export const isType = <T>(thing: any): thing is T => true;
 
 export const getDayId = (timestamp: number) =>
-  (moment(timestamp * 1000)
-    .utc()
-    .startOf("day")
-    .unix() *
-    1000 -
-    productStartInMilliseconds) /
-  millisecondsInDay;
+  (timestamp * 1000 - productStartInMilliseconds) / millisecondsInDay;
 
 export const getTimestampFromDayId = (id: number) =>
   id * millisecondsInDay + productStartInMilliseconds;

@@ -17,7 +17,11 @@ import {
   KVDataToPrice,
 } from "./utils";
 
-const fetchData = async (symbol: string, start: number, finish: number) => {
+export const fetchData = async (
+  symbol: string,
+  start: number,
+  finish: number
+) => {
   const id = coinList[symbol];
   const encodedUrl = getCoingeckoRangeURL(id, start, finish);
 
