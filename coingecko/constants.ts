@@ -1,4 +1,5 @@
-export const millisecondsInDay = 86400000;
+export const secondsInDay = 86400;
+export const millisecondsInDay = 86400 * 1000;
 export const millisecondsInMinute = 60000;
 
 export const productStartInSeconds = 1653350400;
