@@ -69,8 +69,16 @@ const ValidateBatchesList = z
 const ValidateBatchesRange = z
   .array(z.object({ start: z.number(), end: z.number() }))
   .superRefine((batches, ctx) => {
-    batches.map((batch, i) => {
-      if (batch.end - batch.start > secondsInDay * maxRange) {
+    const now = moment().unix();
+    batches.map((batch) => {
+      if (
+        batch.end - batch.start > secondsInDay * maxRange ||
+        batch.start > batch.end ||
+        batch.start < productStartInSeconds ||
+        batch.end < productStartInSeconds ||
+        batch.start > now ||
+        batch.end > now
+      ) {
         return ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Range is incorrect`,
