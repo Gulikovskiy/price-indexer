@@ -3,7 +3,7 @@ import {
   cacheKey,
   precision,
   maxAssetsAmount,
-  maxRange,
+  maxRangeDays,
   maxBatchNumber,
   millisecondsInDay,
 } from "../coingecko/constants";
@@ -29,7 +29,7 @@ export const getEndpoints = async () => {
 export const getServerConfig = () => ({
   assetPrecision: precision,
   maxAssetsAmount,
-  maxRange,
+  maxRangeDays,
   maxBatchNumber,
   granularity: millisecondsInDay / 1000,
 });

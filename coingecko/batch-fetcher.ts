@@ -25,9 +25,10 @@ export const fetchBatches = async (
   let result: PriceRequest = {};
   for (const symbol of assets) {
     result[symbol] = [];
+    let updatedStoredAssetData: [id: number, price: number][] = [];
 
     const assetBatches = batches[symbol];
-    const storedAssetData = stored ? stored[symbol] || null : null;
+    let storedAssetData = stored ? stored[symbol] || null : null;
 
     const lastBatchFinish = moment(
       assetBatches[assetBatches.length - 1].end * 1000
@@ -50,10 +51,10 @@ export const fetchBatches = async (
         }. SAVED TO CACHE`
       );
       await kv.hset(cacheKey, { [symbol]: response });
-      stored = await kv.hgetall(cacheKey);
+      updatedStoredAssetData = response;
     }
 
-    if (storedAssetData !== null) {
+    if (storedAssetData !== null && storedAssetData.length !== 0) {
       const [lastStoredId] = storedAssetData[storedAssetData.length - 1];
 
       const lastBatchId = getDayId(lastBatchFinish);
@@ -81,36 +82,48 @@ export const fetchBatches = async (
           }`
         );
 
-        console.info(`BATCHES Requested data(${symbol}): 
+        if (prices.length !== 0) {
+          console.info(`BATCHES Requested data(${symbol}): 
         ${prices[0][0]}-${prices[0][1]}...${prices[prices.length - 1][0]}-${
-          prices[prices.length - 1][1]
-        }
+            prices[prices.length - 1][1]
+          }
         . SAVED TO CACHE`);
+        }
         await kv.hset(cacheKey, { [symbol]: updatedKVStorageData });
-        stored = await kv.hgetall(cacheKey);
+        if (stored !== null) {
+          await updatedStoredAssetData.push(...updatedKVStorageData);
+        }
+      } else {
+        await updatedStoredAssetData.push(...storedAssetData);
       }
+
       for (let i = 0; i < assetBatches.length; i++) {
         const singleBatch = assetBatches[i];
         const startDayId = getDayId(singleBatch.start);
         const endDayId = getDayId(singleBatch.end);
-
+        const [lastUpdatedId] =
+          updatedStoredAssetData[updatedStoredAssetData.length - 1];
         const startOffset = freshAsset
-          ? storedAssetData.length - 1 - (lastStoredId - startDayId)
+          ? updatedStoredAssetData.length - 1 - (lastUpdatedId - startDayId)
           : startDayId;
         const finishOffset = startOffset + (endDayId - startDayId);
         console.info(
-          `BATCHES Data from cache(${symbol}): ${storedAssetData[0][0]}-${
-            storedAssetData[0][1]
-          }...${storedAssetData[storedAssetData.length - 1][0]}-${
-            storedAssetData[storedAssetData.length - 1][1]
-          }`
+          `BATCHES Data from cache(${symbol}): ${
+            updatedStoredAssetData[0][0]
+          }-${updatedStoredAssetData[0][1]}...${
+            updatedStoredAssetData[updatedStoredAssetData.length - 1][0]
+          }-${updatedStoredAssetData[updatedStoredAssetData.length - 1][1]}`
         );
         result[symbol].push(
           KVDataToPriceArray.parse(
-            storedAssetData.slice(Math.max(0, startOffset), finishOffset + 1)
+            updatedStoredAssetData.slice(
+              Math.max(0, startOffset),
+              finishOffset + 1
+            )
           )
         );
       }
+      updatedStoredAssetData = [];
     }
   }
   return result;

@@ -7,7 +7,7 @@ export const productStartInMilliseconds = 1653350400 * 1000; //1653356522
 
 export const precision = 8;
 export const maxAssetsAmount = 20;
-export const maxRange = 60;
+export const maxRangeDays = 60;
 export const maxBatchNumber = 10;
 
 export const cacheKey = "cacheData";

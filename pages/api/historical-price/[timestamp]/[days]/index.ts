@@ -4,7 +4,7 @@ import { z } from "zod";
 import { fetchCoingeckoPrices } from "../../../../../coingecko/coingecko-fetcher";
 import {
   maxAssetsAmount,
-  maxRange,
+  maxRangeDays,
   productStartInSeconds,
   maxBatchNumber,
   secondsInDay,
@@ -66,18 +66,20 @@ const ValidateBatchesList = z
   .nonempty()
   .max(maxBatchNumber);
 
-const ValidateBatchesRange = z
-  .array(z.object({ start: z.number(), end: z.number() }))
-  .superRefine((batches, ctx) => {
-    batches.map((batch, i) => {
-      if (batch.end - batch.start > secondsInDay * maxRange) {
-        return ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Range is incorrect`,
-        });
-      }
-    });
-  });
+const ValidateBatchesRange = z.array(
+  z
+    .object({ start: z.number().nonnegative(), end: z.number().nonnegative() })
+    .refine((batch) => {
+      const diff = batch.end - batch.start;
+      const maxRangeSeconds = maxRangeDays * secondsInDay;
+
+      return (
+        diff >= 0 &&
+        diff <= maxRangeSeconds &&
+        batch.start >= productStartInSeconds
+      );
+    })
+);
 
 const handler = async (
   req: NextApiRequest,
@@ -157,7 +159,7 @@ const handler = async (
       return res.status(400).json(assetAmountExcessError);
     }
 
-    if (days > maxRange) {
+    if (days > maxRangeDays) {
       return res.status(400).json(daysAmountExcessError);
     }
 
