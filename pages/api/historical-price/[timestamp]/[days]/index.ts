@@ -15,6 +15,7 @@ import {
   assetAmountExcessError,
   batchesAmountExcessError,
   batchesRangeExcessError,
+  batchesSortExcessError,
   daysAmountExcessError,
   invalidSymbolErrorResponse,
   serverError,
@@ -61,6 +62,20 @@ const ValidateCoinList = z
     });
   });
 
+const ValidateBatchesSort = z
+  .array(z.object({ start: z.number(), end: z.number() }))
+  .nonempty()
+  .superRefine((batches, ctx) => {
+    batches.map((batch, i) => {
+      if (i !== batches.length - 1 && batch.start > batches[i + 1].start) {
+        return ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Sort error`,
+        });
+      }
+    });
+  });
+
 const ValidateBatchesList = z
   .array(z.object({ start: z.number(), end: z.number() }))
   .nonempty()
@@ -94,6 +109,17 @@ const handler = async (
     if (!validatedCoins.success) {
       const errorMessage = validatedCoins.error.issues[0].message;
       return res.status(400).json(invalidSymbolErrorResponse(errorMessage));
+    }
+
+    const errorBatchesSort = coins.filter((symbol) => {
+      const batchSortStatus = ValidateBatchesSort.safeParse(data[symbol]);
+      console.log("batchSortStatus: ", batchSortStatus);
+      if (!batchSortStatus.success) {
+        return symbol;
+      }
+    });
+    if (errorBatchesSort.length !== 0) {
+      return res.status(400).json(batchesSortExcessError(errorBatchesSort));
     }
 
     const errorBatchesAmount = coins.filter((symbol) => {
