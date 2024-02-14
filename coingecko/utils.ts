@@ -21,10 +21,14 @@ export const getDayId = (timestamp: number) =>
 export const getTimestampFromDayId = (id: number) =>
   id * millisecondsInDay + productStartInMilliseconds;
 
+// export const getCoingeckoRangeURL = (id: string, from: number, to: number) =>
+// encodeURIComponent(
+//   `${coingeckoURL}/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}&x_cg_demo_api_key=${apiKey}`
+// );
+// INFO: SCRAPER API ISSUE
+
 export const getCoingeckoRangeURL = (id: string, from: number, to: number) =>
-  encodeURIComponent(
-    `${coingeckoURL}/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}&x_cg_demo_api_key=${apiKey}`
-  );
+  `${coingeckoURL}/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}&precision=${precision}&x_cg_demo_api_key=${apiKey}`;
 
 export const KVDataToPrice = z
   .array(z.tuple([z.number().int(), z.number().positive()]))

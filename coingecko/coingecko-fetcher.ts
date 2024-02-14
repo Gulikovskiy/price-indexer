@@ -25,9 +25,12 @@ export const fetchData = async (
   const id = coinList[symbol];
   const encodedUrl = getCoingeckoRangeURL(id, start, finish);
 
-  const res = await fetch(
-    `${scraperURL}/?api_key=${process.env.SCRAPER_API_KEY}&url=${encodedUrl}`
-  );
+  // const res = await fetch(
+  //   `${scraperURL}/?api_key=${process.env.SCRAPER_API_KEY}&url=${encodedUrl}`
+  // );
+  // INFO: SCRAPER API ISSUE
+
+  const res = await fetch(`${encodedUrl}`);
 
   if (res.status !== 200) {
     console.error({ res });
