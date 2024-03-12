@@ -37,6 +37,26 @@ export const fetchBatches = async (
       .startOf("day")
       .unix();
 
+    // TODO: update
+    // for (const { start, end } of assetBatches) {
+    //   const startId = getDayId(
+    //     moment(start * 1000)
+    //       .utc()
+    //       .startOf("day")
+    //       .unix()
+    //   );
+
+    //   const endId = getDayId(
+    //     moment(end * 1000)
+    //       .utc()
+    //       .startOf("day")
+    //       .unix()
+    //   );
+    //   for (let i = startId; i <= endId; i++) {
+    //     const storedAssetData = await kv.hget(cacheAssetKey, `${symbol}-${i}`);
+    //   }
+    // }
+
     if (storedAssetData === null) {
       const response = await fetchData(
         symbol,
