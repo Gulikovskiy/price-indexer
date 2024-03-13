@@ -56,7 +56,7 @@ export const KVDataToPriceArray = z
     return array;
   });
 
-export const CoingeckoResponse = z.object({
+export const CoingeckoDailyResponse = z.object({
   prices: z.array(z.tuple([z.number(), z.number()])).transform((prices) => {
     const arr: [id: number, price: number][] = [];
 
@@ -66,5 +66,16 @@ export const CoingeckoResponse = z.object({
       if (!arr.some((el) => el[0] === id)) arr.push([id, price]);
     }
     return arr;
+  }),
+});
+
+export const CoingeckoFreshResponse = z.object({
+  prices: z.array(z.tuple([z.number(), z.number()])).transform((prices) => {
+    const [timestamp, price] = prices[prices.length - 1];
+
+    const startOfTheDay = moment(timestamp).utc().startOf("day").unix();
+    const id = getDayId(startOfTheDay);
+
+    return { id, timestamp, price: price.toString() };
   }),
 });

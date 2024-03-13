@@ -1,4 +1,5 @@
 export const secondsInDay = 86400;
+export const fourHoursInSeconds = 14400;
 export const millisecondsInDay = 86400 * 1000;
 export const millisecondsInMinute = 60000;
 
