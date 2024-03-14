@@ -9,6 +9,7 @@ import {
   ErrorResponse,
   coingeckoAPIErrorResponse,
   invalidResponseTypesError,
+  timestampRangeError,
 } from "./errors";
 import { Price, PriceDataResponse } from "./interfaces";
 import { coinList } from "./supported-coins";
@@ -121,130 +122,134 @@ export const fetchCoingeckoPrices = async (
     : getDayId(finishTimestamp) - 1;
   const invalidSymbols: string[] = [];
 
-  // TODO:
-  // assets.map((symbol) => {
-  //   const endpointStartId =
-  //     stored !== null && stored[symbol] !== null ? stored[symbol][0][0] : 0; //INFO first ID from stored data
-
-  //   if (endpointStartId > dayStartId) {
-  //     invalidSymbols.push(symbol);
-  //   }
-  // });
-
-  // if (invalidSymbols.length !== 0) {
-  //   return timestampRangeError(invalidSymbols);
-  // }
-
   await Promise.all(
     assets.map(async (symbol) => {
-      const lastSyncedTimestamp: number | null = await kv.hget(
-        cacheAssetsLastSynced,
-        symbol
+      const storedAssetPrice: number | null = await kv.hget(
+        cacheAssetsKey,
+        `${symbol}-${dayStartId}`
       );
 
-      if (!lastSyncedTimestamp) {
-        // INFO: empty database
-
-        const response = await fetchData(
-          symbol,
-          startTimestamp,
-          finishTimestamp
-        );
-        console.info(
-          `Requested data(${symbol}): ${response[0][0]}-${response[0][1]}...${
-            response[response.length - 1][0]
-          }-${response[response.length - 1][1]}`
-        );
-        data[symbol] = KVDataToPrice.parse(response);
-        response.map(async ([id, price]) => {
-          await kv.hset(cacheAssetsKey, { [`${symbol}-${id}`]: price });
-        });
-
-        await kv.hset(cacheAssetsLastSynced, {
-          [`${symbol}`]: finishTimestamp,
-        });
-
-        return;
+      if (storedAssetPrice === null) {
+        invalidSymbols.push(symbol);
       }
-      const preselectedData: [number, number][] = [];
-      let lastStoredId: number = 0;
-
-      for (let i = dayStartId; i <= dayFinishId; i++) {
-        const dailyAssetPrice: number | null = await kv.hget(
-          cacheAssetsKey,
-          `${symbol}-${i}`
-        );
-
-        if (dailyAssetPrice) {
-          preselectedData.push([i, dailyAssetPrice]);
-        } else {
-          lastStoredId = i;
-          break;
-        }
-      }
-
-      if (lastStoredId === 0) {
-        const shift = preselectedData.length - 1;
-        if (
-          currentDayTimestamp * 1000 ===
-          getTimestampFromDayId(preselectedData[shift][0])
-        ) {
-          const filteredData = preselectedData.slice(0, shift);
-          const { prices, timestamps } = KVDataToPrice.parse(filteredData);
-
-          data[symbol] = {
-            prices: [...prices, preselectedData[shift][1].toString()],
-            timestamps: [...timestamps, lastSyncedTimestamp * 1000],
-          };
-        } else {
-          data[symbol] = KVDataToPrice.parse(preselectedData);
-        }
-      } else {
-        const response = await fetchData(
-          symbol,
-          getTimestampFromDayId(lastStoredId) / 1000,
-          finishTimestamp
-        );
-
-        await kv.hset(cacheAssetsLastSynced, {
-          [`${symbol}`]: finishTimestamp,
-        });
-
-        response.map(async ([id, price]) => {
-          await kv.hset(cacheAssetsKey, { [`${symbol}-${id}`]: price });
-        });
-
-        data[symbol] = KVDataToPrice.parse([...preselectedData, ...response]);
-      }
-
-      if (currentTimestamp - fourHoursInSeconds > lastSyncedTimestamp) {
-        const response = await fetchFreshData(
-          symbol,
-          lastSyncedTimestamp,
-          currentTimestamp
-        );
-
-        const { prices, timestamps } = data[symbol] as Price;
-
-        await kv.hset(cacheAssetsKey, {
-          [`${symbol}-${getDayId(currentTimestamp)}`]: response.price,
-        });
-        await kv.hset(cacheAssetsLastSynced, {
-          [`${symbol}`]: currentTimestamp,
-        });
-
-        data[symbol] = {
-          prices: [...prices.slice(0, prices.length - 1), response.price],
-          timestamps: [
-            ...timestamps.slice(0, timestamps.length - 1),
-            response.timestamp,
-          ],
-        };
-      }
-
-      return;
     })
   );
+
+  if (invalidSymbols.length !== 0) {
+    return timestampRangeError(invalidSymbols);
+  } else {
+    await Promise.all(
+      assets.map(async (symbol) => {
+        const lastSyncedTimestamp: number | null = await kv.hget(
+          cacheAssetsLastSynced,
+          symbol
+        );
+
+        if (!lastSyncedTimestamp) {
+          // INFO: empty database
+
+          const response = await fetchData(
+            symbol,
+            startTimestamp,
+            finishTimestamp
+          );
+          console.info(
+            `Requested data(${symbol}): ${response[0][0]}-${response[0][1]}...${
+              response[response.length - 1][0]
+            }-${response[response.length - 1][1]}`
+          );
+          data[symbol] = KVDataToPrice.parse(response);
+          response.map(async ([id, price]) => {
+            await kv.hset(cacheAssetsKey, { [`${symbol}-${id}`]: price });
+          });
+
+          await kv.hset(cacheAssetsLastSynced, {
+            [`${symbol}`]: finishTimestamp,
+          });
+
+          return;
+        }
+
+        const preselectedData: [number, number][] = [];
+        let lastStoredId: number = 0;
+
+        for (let i = dayStartId; i <= dayFinishId; i++) {
+          const dailyAssetPrice: number | null = await kv.hget(
+            cacheAssetsKey,
+            `${symbol}-${i}`
+          );
+
+          if (dailyAssetPrice) {
+            preselectedData.push([i, dailyAssetPrice]);
+          } else {
+            lastStoredId = i;
+            break;
+          }
+        }
+
+        if (lastStoredId === 0) {
+          const shift = preselectedData.length - 1;
+          if (
+            currentDayTimestamp * 1000 ===
+            getTimestampFromDayId(preselectedData[shift][0])
+          ) {
+            const filteredData = preselectedData.slice(0, shift);
+            const { prices, timestamps } = KVDataToPrice.parse(filteredData);
+
+            data[symbol] = {
+              prices: [...prices, preselectedData[shift][1].toString()],
+              timestamps: [...timestamps, lastSyncedTimestamp * 1000],
+            };
+          } else {
+            data[symbol] = KVDataToPrice.parse(preselectedData);
+          }
+        } else {
+          const response = await fetchData(
+            symbol,
+            getTimestampFromDayId(lastStoredId) / 1000,
+            finishTimestamp
+          );
+
+          await kv.hset(cacheAssetsLastSynced, {
+            [`${symbol}`]: finishTimestamp,
+          });
+
+          response.map(async ([id, price]) => {
+            await kv.hset(cacheAssetsKey, { [`${symbol}-${id}`]: price });
+          });
+
+          data[symbol] = KVDataToPrice.parse([...preselectedData, ...response]);
+        }
+
+        if (currentTimestamp - fourHoursInSeconds > lastSyncedTimestamp) {
+          const response = await fetchFreshData(
+            symbol,
+            lastSyncedTimestamp,
+            currentTimestamp
+          );
+
+          const { prices, timestamps } = data[symbol] as Price;
+
+          await kv.hset(cacheAssetsKey, {
+            [`${symbol}-${getDayId(currentTimestamp)}`]: response.price,
+          });
+          await kv.hset(cacheAssetsLastSynced, {
+            [`${symbol}`]: currentTimestamp,
+          });
+
+          data[symbol] = {
+            prices: [...prices.slice(0, prices.length - 1), response.price],
+            timestamps: [
+              ...timestamps.slice(0, timestamps.length - 1),
+              response.timestamp,
+            ],
+          };
+        }
+
+        return;
+      })
+    );
+  }
 
   return data;
 };

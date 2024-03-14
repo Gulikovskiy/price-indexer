@@ -2,28 +2,28 @@ export const coinList: { [key: string]: string } = {
   //BLOCKCHAINS & CHAINS & FAMOUS
   BTC: "bitcoin",
   ETH: "ethereum",
-  BNB: "binancecoin",
-  SOL: "solana",
-  ADA: "cardano",
+  // BNB: "binancecoin",
+  // SOL: "solana",
+  // ADA: "cardano",
   AVAX: "avalanche-2",
   MATIC: "matic-network",
-  DOT: "polkadot",
-  TRON: "tron",
+  // DOT: "polkadot",
+  // TRON: "tron",
   OP: "optimism",
-  ATOM: "cosmos",
-  NEAR: "near",
-  FTM: "fantom",
-  GNO: "gnosis",
-  ARB: "arbitrum",
+  // ATOM: "cosmos",
+  // NEAR: "near",
+  // FTM: "fantom",
+  // GNO: "gnosis",
+  // ARB: "arbitrum",
   LINK: "chainlink",
-  LTC: "litecoin",
-  XLM: "stellar",
-  GRT: "the-graph",
-  ALGO: "algorand",
+  // LTC: "litecoin",
+  // XLM: "stellar",
+  // GRT: "the-graph",
+  // ALGO: "algorand",
 
   //MEME COINS
-  DOGE: "dogecoin",
-  SHIB: "shiba-inu",
+  // DOGE: "dogecoin",
+  // SHIB: "shiba-inu",
 
   //STABLES
   USDC: "usd-coin",
@@ -48,6 +48,7 @@ export const coinList: { [key: string]: string } = {
   FXS: "frax-share",
   CRV: "curve-dao-token",
   RPL: "rocket-pool",
+
   CVX: "convex-finance",
   COMP: "compound-governance-token",
   YFI: "yearn-finance",
@@ -65,11 +66,12 @@ export const coinList: { [key: string]: string } = {
   JOE: "joe",
   SAVAX: "benqi-liquid-staked-avax",
   XAVA: "avalaunch",
+  //
   //CAI(inactive)
   QI: "benqi",
   //test
-  VET: "vechain",
-  AXS: "axie-infinity",
+  // VET: "vechain",
+  // AXS: "axie-infinity",
 } as const;
 
 export type TokenId = (typeof coinList)[keyof typeof coinList];
